@@ -5,14 +5,14 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from cfdpy import PutRequest
-from cfdpy.defs import CfdpState
-from cfdpy.exceptions import (
+from pycfdp import PutRequest
+from pycfdp.defs import CfdpState
+from pycfdp.exceptions import (
     InvalidDestinationId,
     InvalidPduDirection,
     InvalidSourceId,
 )
-from cfdpy.handler.source import TransactionStep
+from pycfdp.handler.source import TransactionStep
 from spacepackets.cfdp import (
     ConditionCode,
     Direction,

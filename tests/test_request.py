@@ -10,7 +10,7 @@ from spacepackets.cfdp.tlv import (
 )
 from spacepackets.util import ByteFieldU16
 
-from cfdpy import PutRequest
+from pycfdp import PutRequest
 
 
 class TestRequest(TestCase):

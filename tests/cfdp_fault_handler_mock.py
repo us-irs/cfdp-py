@@ -1,6 +1,6 @@
 from spacepackets.cfdp import ConditionCode
-from cfdpy.mib import DefaultFaultHandlerBase
-from cfdpy import TransactionId
+from pycfdp.mib import DefaultFaultHandlerBase
+from pycfdp import TransactionId
 
 
 class FaultHandler(DefaultFaultHandlerBase):

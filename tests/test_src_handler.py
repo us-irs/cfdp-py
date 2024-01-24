@@ -5,18 +5,18 @@ from pathlib import Path
 from typing import Optional, Tuple, cast
 from unittest.mock import MagicMock
 
-from cfdpy import (
+from pycfdp import (
     CfdpState,
     IndicationCfg,
     LocalEntityCfg,
     RemoteEntityCfg,
     RemoteEntityCfgTable,
 )
-from cfdpy.exceptions import UnretrievedPdusToBeSent
-from cfdpy.handler import FsmResult, SourceHandler
-from cfdpy.handler.source import TransactionStep
-from cfdpy.request import PutRequest
-from cfdpy.user import TransactionFinishedParams, TransactionParams
+from pycfdp.exceptions import UnretrievedPdusToBeSent
+from pycfdp.handler import FsmResult, SourceHandler
+from pycfdp.handler.source import TransactionStep
+from pycfdp.request import PutRequest
+from pycfdp.user import TransactionFinishedParams, TransactionParams
 from crcmod.predefined import PredefinedCrc
 from pyfakefs.fake_filesystem_unittest import TestCase
 from spacepackets.cfdp import (

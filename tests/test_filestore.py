@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 
 from pyfakefs.fake_filesystem_unittest import TestCase
-from cfdpy.filestore import HostFilestore, FilestoreResult
+from pycfdp.filestore import HostFilestore, FilestoreResult
 
 
 class TestCfdpHostFilestore(TestCase):

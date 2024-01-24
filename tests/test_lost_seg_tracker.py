@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from cfdpy.handler.dest import LostSegmentTracker
+from pycfdp.handler.dest import LostSegmentTracker
 
 
 class TestLostSegmentTracker(TestCase):

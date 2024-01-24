@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cfdpy"
+name = "pycfdp"
 description = "Library for high level CCSDS File Delivery Protocol (CFDP) components"
 readme = "README.md"
 version = "0.1.0"
@@ -29,7 +29,6 @@ classifiers = [
 ]
 dependencies = [
   "spacepackets~=0.23.0",
-  # "spacepackets@git+https://github.com/us-irs/spacepackets-py@main",
   "crcmod~=1.7",
   "deprecation~=2.1"
 ]
@@ -40,7 +39,7 @@ test = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/us-irs/cfdpy"
+"Homepage" = "https://github.com/us-irs/py-cfdp"
 
 [tool.ruff]
 ignore = ["E501"]

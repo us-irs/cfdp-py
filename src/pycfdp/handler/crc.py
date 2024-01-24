@@ -5,8 +5,8 @@ from typing import Optional
 from crcmod.predefined import PredefinedCrc
 
 from spacepackets.cfdp import ChecksumType, NULL_CHECKSUM_U32
-from cfdpy.filestore import VirtualFilestore
-from cfdpy.exceptions import ChecksumNotImplemented, SourceFileDoesNotExist
+from pycfdp.filestore import VirtualFilestore
+from pycfdp.exceptions import ChecksumNotImplemented, SourceFileDoesNotExist
 
 
 def calc_modular_checksum(file_path: Path) -> bytes:

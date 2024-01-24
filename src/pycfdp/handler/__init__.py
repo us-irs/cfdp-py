@@ -1,5 +1,5 @@
 from spacepackets.seqcount import ProvidesSeqCount
-from cfdpy.mib import (
+from pycfdp.mib import (
     LocalEntityCfg,
     RemoteEntityCfgTable,
     RemoteEntityCfg,

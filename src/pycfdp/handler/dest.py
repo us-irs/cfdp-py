@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Deque, List, Optional, Tuple
 
-from cfdpy.defs import CfdpState
-from cfdpy.exceptions import (
+from pycfdp.defs import CfdpState
+from pycfdp.exceptions import (
     FsmNotCalledAfterPacketInsertion,
     InvalidDestinationId,
     InvalidPduDirection,
@@ -18,23 +18,23 @@ from cfdpy.exceptions import (
     PduIgnoredForDestReason,
     UnretrievedPdusToBeSent,
 )
-from cfdpy.handler.common import (
+from pycfdp.handler.common import (
     PacketDestination,
     _PositiveAckProcedureParams,
     get_packet_destination,
 )
-from cfdpy.handler.crc import CrcHelper
-from cfdpy.handler.defs import (
+from pycfdp.handler.crc import CrcHelper
+from pycfdp.handler.defs import (
     _FileParamsBase,
 )
-from cfdpy.mib import (
+from pycfdp.mib import (
     CheckTimerProvider,
     EntityType,
     LocalEntityCfg,
     RemoteEntityCfg,
     RemoteEntityCfgTable,
 )
-from cfdpy.user import (
+from pycfdp.user import (
     CfdpUserBase,
     FileSegmentRecvdParams,
     MetadataRecvParams,

@@ -3,8 +3,8 @@ import struct
 from pyfakefs.fake_filesystem_unittest import TestCase
 from tempfile import gettempdir
 from pathlib import Path
-from cfdpy.handler.crc import CrcHelper, calc_modular_checksum
-from cfdpy.user import HostFilestore
+from pycfdp.handler.crc import CrcHelper, calc_modular_checksum
+from pycfdp.user import HostFilestore
 from spacepackets.cfdp import ChecksumType
 
 
