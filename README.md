@@ -1,12 +1,12 @@
-[![ci](https://github.com/us-irs/cfdpy/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/cfdpy/actions/workflows/ci.yml)
-[![Documentation Status](https://readthedocs.org/projects/cfdpy/badge/?version=latest)](https://cfdpy.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/us-irs/cfdpy/graph/badge.svg?token=YFLM60LCVI)](https://codecov.io/gh/us-irs/cfdpy)
-[![PyPI version](https://badge.fury.io/py/cfdpy.svg)](https://badge.fury.io/py/cfdpy)
+[![ci](https://github.com/us-irs/py-cfdp/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/py-cfdp/actions/workflows/ci.yml)
+[![Documentation Status](https://readthedocs.org/projects/pycfdp/badge/?version=latest)](https://pycfdp.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/us-irs/py-cfdp/graph/badge.svg?token=YFLM60LCVI)](https://codecov.io/gh/us-irs/py-cfdp)
+[![PyPI version](https://badge.fury.io/py/pycfdp.svg)](https://badge.fury.io/py/pycfdp)
 
-cfdpy - High level library for CFDP components
+pycfdp - High level library for CFDP components 
 ======================
 
-The `cfdpy` library offers some high-level CCSDS File Delivery Protocol (CFDP) components to
+The `pycfdp` library offers some high-level CCSDS File Delivery Protocol (CFDP) components to
 perform file transfers according to the [CCSDS Blue Book 727.0-B-5](https://public.ccsds.org/Pubs/727x0b5.pdf).
 The underlying base packet library used to generate the packets to be sent is the
 [spacepackets](https://github.com/us-irs/spacepackets-py) library.
@@ -18,18 +18,18 @@ You can install this package from PyPI
 Linux:
 
 ```sh
-python3 -m pip install cfdpy
+python3 -m pip install pycfdp 
 ```
 
 Windows:
 
 ```sh
-py -m pip install cfdpy 
+py -m pip install pycfdp 
 ```
 
 # Examples
 
-You can find all examples [inside the documentation](https://cfdpy.readthedocs.io/en/latest/examples.html) and the `examples` directory of this repository.
+You can find all examples [inside the documentation](https://pycfdp.readthedocs.io/en/latest/examples.html) and the `examples` directory of this repository.
 
 # Tests
 
@@ -38,7 +38,7 @@ first. You also have to install the package with the optional `test` feature:
 
 ```sh
 pip install coverage pytest
-pip install cfdpy[test]
+pip install pycfdp[test]
 ```
 
 Running tests regularly:
