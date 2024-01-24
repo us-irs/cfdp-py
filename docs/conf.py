@@ -23,7 +23,7 @@ copyright = "2024, Robin Mueller"
 author = "Robin Mueller"
 
 # The full version, including alpha/beta/rc tags
-release = version = version("cfdppy")
+release = version = version("cfdp-py")
 
 
 # -- General configuration ---------------------------------------------------

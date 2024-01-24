@@ -4,7 +4,7 @@ CFDP Handler Package
 Package Contents
 -----------------
 
-.. automodule:: cfdpy.handler
+.. automodule:: cfdppy.handler
    :members:
    :undoc-members:
    :show-inheritance:
@@ -12,7 +12,7 @@ Package Contents
 Source Handler Module
 -------------------------------------
 
-.. automodule:: cfdpy.handler.source
+.. automodule:: cfdppy.handler.source
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,7 +20,7 @@ Source Handler Module
 Destination Handler Module
 -------------------------------------
 
-.. automodule:: cfdpy.handler.dest
+.. automodule:: cfdppy.handler.dest
    :members:
    :undoc-members:
    :show-inheritance:
@@ -28,7 +28,7 @@ Destination Handler Module
 Defintions Module
 -------------------------------------
 
-.. automodule:: cfdpy.handler.defs
+.. automodule:: cfdppy.handler.defs
    :members:
    :undoc-members:
    :show-inheritance:

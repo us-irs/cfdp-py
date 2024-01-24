@@ -4,7 +4,7 @@ CFDP Package
 Module contents
 ---------------
 
-.. automodule:: cfdpy
+.. automodule:: cfdppy
    :members:
    :undoc-members:
    :show-inheritance:
@@ -12,7 +12,7 @@ Module contents
 Filestore Module
 -------------------------------
 
-.. automodule:: cfdpy.filestore
+.. automodule:: cfdppy.filestore
    :members:
    :undoc-members:
    :show-inheritance:
@@ -21,7 +21,7 @@ Filestore Module
 Management Information Base (MIB) Module
 -------------------------------------------
 
-.. automodule:: cfdpy.mib
+.. automodule:: cfdppy.mib
    :members:
    :undoc-members:
    :show-inheritance:
@@ -29,7 +29,7 @@ Management Information Base (MIB) Module
 Request Module
 -------------------------------
 
-.. automodule:: cfdpy.request
+.. automodule:: cfdppy.request
    :members:
    :undoc-members:
    :show-inheritance:
@@ -37,7 +37,7 @@ Request Module
 User Module
 -------------------------------
 
-.. automodule:: cfdpy.user
+.. automodule:: cfdppy.user
    :members:
    :undoc-members:
    :show-inheritance:
@@ -45,7 +45,7 @@ User Module
 Exceptions Module
 -------------------------------------------
 
-.. automodule:: cfdpy.exceptions
+.. automodule:: cfdppy.exceptions
    :members:
    :undoc-members:
    :show-inheritance:
@@ -53,7 +53,7 @@ Exceptions Module
 Definitions Module
 --------------------------
 
-.. automodule:: cfdpy.defs
+.. automodule:: cfdppy.defs
    :members:
    :undoc-members:
    :show-inheritance:
