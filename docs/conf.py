@@ -18,12 +18,12 @@
 # -- Project information -----------------------------------------------------
 from importlib.metadata import version
 
-project = "cfdpy"
+project = "cfdp-py"
 copyright = "2024, Robin Mueller"
 author = "Robin Mueller"
 
 # The full version, including alpha/beta/rc tags
-release = version = version("cfdpy")
+release = version = version("cfdppy")
 
 
 # -- General configuration ---------------------------------------------------
