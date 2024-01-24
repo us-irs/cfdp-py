@@ -27,7 +27,8 @@ You can run
 pip install -r requirements.txt
 ```
 
-to install the dependency.
+to install the dependency. For your own application code, you do not need to use this dependency
+and you can use other ways to determine the CFDP parameters from the user.
 
 If you want to sent a file from the local application to the remote application, you can use
 the following commands:
