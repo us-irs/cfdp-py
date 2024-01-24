@@ -124,19 +124,19 @@ class CfdpUser(CfdpUserBase):
 
     def transaction_indication(
         self,
-        transaction_params: TransactionParams,
+        transaction_indication_params: TransactionParams,
     ):
         """This indication is used to report the transaction ID to the CFDP user"""
         _LOGGER.info(
-            f"{self.base_str}: Transaction.indication for {transaction_params.transaction_id}"
+            f"{self.base_str}: Transaction.indication for {transaction_indication_params.transaction_id}"
         )
-        if transaction_params.originating_transaction_id is not None:
+        if transaction_indication_params.originating_transaction_id is not None:
             _LOGGER.info(
-                f"Originating Transaction ID: {transaction_params.originating_transaction_id}"
+                f"Originating Transaction ID: {transaction_indication_params.originating_transaction_id}"
             )
             self.active_proxy_put_reqs.update(
                 {
-                    transaction_params.transaction_id: transaction_params.originating_transaction_id
+                    transaction_indication_params.transaction_id: transaction_indication_params.originating_transaction_id
                 }
             )
 
@@ -217,8 +217,8 @@ class CfdpUser(CfdpUserBase):
             assert put_req_params is not None
             put_req = PutRequest(
                 destination_id=put_req_params.dest_entity_id,
-                source_file=put_req_params.source_file_as_path,
-                dest_file=put_req_params.dest_file_as_path,
+                source_file=Path(put_req_params.source_file_as_path),
+                dest_file=Path(put_req_params.dest_file_as_path),
                 trans_mode=None,
                 closure_requested=None,
                 msgs_to_user=[
