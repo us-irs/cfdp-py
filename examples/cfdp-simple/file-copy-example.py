@@ -38,6 +38,7 @@ from cfdppy.user import (
     FileSegmentRecvdParams,
     MetadataRecvParams,
     TransactionFinishedParams,
+    TransactionParams,
 )
 from spacepackets.countdown import Countdown
 from spacepackets.seqcount import SeqCountProvider
@@ -118,9 +119,14 @@ class CfdpUser(CfdpUserBase):
         self.base_str = base_str
         super().__init__()
 
-    def transaction_indication(self, transaction_id: TransactionId):
+    def transaction_indication(
+        self,
+        transaction_indication_params: TransactionParams,
+    ):
         """This indication is used to report the transaction ID to the CFDP user"""
-        _LOGGER.info(f"{self.base_str}: Transaction.indication for {transaction_id}")
+        _LOGGER.info(
+            f"{self.base_str}: Transaction.indication for {transaction_indication_params.transaction_id}"
+        )
 
     def eof_sent_indication(self, transaction_id: TransactionId):
         _LOGGER.info(f"{self.base_str}: EOF-Sent.indication for {transaction_id}")

@@ -32,6 +32,7 @@ from cfdppy.user import (
     FileSegmentRecvdParams,
     MetadataRecvParams,
     TransactionFinishedParams,
+    TransactionParams,
 )
 from common import REMOTE_CFG_FOR_DEST_ENTITY, UDP_SERVER_PORT, UDP_TM_SERVER_PORT
 from common import REMOTE_ENTITY_ID as REMOTE_ENTITY_ID_RAW
@@ -103,9 +104,14 @@ class CfdpUser(CfdpUserBase):
         self.base_str = base_str
         super().__init__()
 
-    def transaction_indication(self, transaction_id: TransactionId):
+    def transaction_indication(
+        self,
+        transaction_indication_params: TransactionParams,
+    ):
         """This indication is used to report the transaction ID to the CFDP user"""
-        _LOGGER.info(f"{self.base_str}: Transaction.indication for {transaction_id}")
+        _LOGGER.info(
+            f"{self.base_str}: Transaction.indication for {transaction_indication_params.transaction_id}"
+        )
 
     def eof_sent_indication(self, transaction_id: TransactionId):
         _LOGGER.info(f"{self.base_str}: EOF-Sent.indication for {transaction_id}")
