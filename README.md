@@ -1,6 +1,6 @@
 [![ci](https://github.com/us-irs/cfdp-py/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/cfdp-py/actions/workflows/ci.yml)
 [![Documentation Status](https://readthedocs.org/projects/cfdp-py/badge/?version=latest)](https://cfdp-py.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/us-irs/cfdp-py/graph/badge.svg?token=YFLM60LCVI)](https://codecov.io/gh/us-irs/cfdp-py)
+[![codecov](https://codecov.io/gh/us-irs/cfdp-py/graph/badge.svg?token=FBL1NR54BI)](https://codecov.io/gh/us-irs/cfdp-py)
 [![PyPI version](https://badge.fury.io/py/cfdppy.svg)](https://badge.fury.io/py/cfdppy)
 
 cfdp-py - High level Python library for CFDP components
