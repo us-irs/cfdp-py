@@ -22,7 +22,7 @@ jobs:
     - name: Install package and dependencies
       run: |
         python3 -m pip install --upgrade pip setuptools wheel
-        pip install .
+        pip install .[test]
 
     - name: Build documentation and examples
       run: |
