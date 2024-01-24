@@ -29,7 +29,7 @@ py -m pip install cfdppy
 
 # Examples
 
-You can find all examples [inside the documentation](https://pycfdp.readthedocs.io/en/latest/examples.html) and the `examples` directory of this repository.
+You can find all examples [inside the documentation](https://cfdp-py.readthedocs.io/en/latest/examples.html) and the `examples` directory of this repository.
 
 # Tests
 
