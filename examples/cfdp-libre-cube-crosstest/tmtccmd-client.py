@@ -15,21 +15,10 @@ from pathlib import Path
 from queue import Empty
 from typing import Any
 
-from common import REMOTE_ENTITY_ID as REMOTE_ENTITY_ID_RAW
-from common import SOURCE_ENTITY_ID as SOURCE_ENTITY_ID_RAW
-from common import UDP_SERVER_PORT, UDP_TM_SERVER_PORT, REMOTE_CFG_FOR_DEST_ENTITY
-from spacepackets.cfdp import (
-    ConditionCode,
-    TransactionId,
-    TransmissionMode,
-)
-from spacepackets.cfdp.pdu.helper import PduFactory
-from spacepackets.util import ByteFieldU16, UnsignedByteField
-
-from tmtccmd.cfdp import CfdpState
-from tmtccmd.cfdp.exceptions import InvalidSourceId
-from tmtccmd.cfdp.handler import SourceHandler
-from tmtccmd.cfdp.mib import (
+from cfdpy import CfdpState
+from cfdpy.exceptions import InvalidSourceId
+from cfdpy.handler import SourceHandler
+from cfdpy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
     EntityType,
@@ -37,15 +26,25 @@ from tmtccmd.cfdp.mib import (
     LocalEntityCfg,
     RemoteEntityCfgTable,
 )
-from tmtccmd.cfdp.request import PutRequest
-from tmtccmd.cfdp.user import (
+from cfdpy.request import PutRequest
+from cfdpy.user import (
     CfdpUserBase,
     FileSegmentRecvdParams,
     MetadataRecvParams,
     TransactionFinishedParams,
 )
-from tmtccmd.util.countdown import Countdown
-from tmtccmd.util.seqcnt import SeqCountProvider
+from common import REMOTE_CFG_FOR_DEST_ENTITY, UDP_SERVER_PORT, UDP_TM_SERVER_PORT
+from common import REMOTE_ENTITY_ID as REMOTE_ENTITY_ID_RAW
+from common import SOURCE_ENTITY_ID as SOURCE_ENTITY_ID_RAW
+from spacepackets.cfdp import (
+    ConditionCode,
+    TransactionId,
+    TransmissionMode,
+)
+from spacepackets.cfdp.pdu.helper import PduFactory
+from spacepackets.countdown import Countdown
+from spacepackets.seqcount import SeqCountProvider
+from spacepackets.util import ByteFieldU16, UnsignedByteField
 
 SOURCE_ENTITY_ID = ByteFieldU16(SOURCE_ENTITY_ID_RAW)
 DEST_ENTITY_ID = ByteFieldU16(REMOTE_ENTITY_ID_RAW)

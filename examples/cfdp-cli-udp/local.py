@@ -24,9 +24,9 @@ from common import (
     parse_remote_addr_from_json,
 )
 
-from tmtccmd.cfdp.handler.dest import DestHandler
-from tmtccmd.cfdp.handler.source import SourceHandler
-from tmtccmd.cfdp.mib import (
+from cfdpy.handler.dest import DestHandler
+from cfdpy.handler.source import SourceHandler
+from cfdpy.mib import (
     LocalEntityCfg,
     RemoteEntityCfgTable,
 )
@@ -36,7 +36,7 @@ from tmtccmd.config.args import (
     CfdpParams,
 )
 from tmtccmd.config.cfdp import generic_cfdp_params_to_put_request
-from tmtccmd.util.seqcnt import SeqCountProvider
+from spacepackets.seqcount import SeqCountProvider
 
 _LOGGER = logging.getLogger(__name__)
 

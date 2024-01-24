@@ -5,11 +5,17 @@ import logging
 from logging import basicConfig
 from multiprocessing import Queue
 
+from cfdpy.handler.dest import DestHandler
+from cfdpy.handler.source import SourceHandler
+from cfdpy.mib import (
+    LocalEntityCfg,
+    RemoteEntityCfgTable,
+)
 from common import (
     INDICATION_CFG,
+    REMOTE_CFG_OF_LOCAL_ENTITY,
     REMOTE_ENTITY_ID,
     REMOTE_PORT,
-    REMOTE_CFG_OF_LOCAL_ENTITY,
     CfdpFaultHandler,
     CfdpUser,
     CustomCheckTimerProvider,
@@ -17,14 +23,7 @@ from common import (
     SourceEntityHandler,
     UdpServer,
 )
-
-from tmtccmd.cfdp.handler.dest import DestHandler
-from tmtccmd.cfdp.handler.source import SourceHandler
-from tmtccmd.cfdp.mib import (
-    LocalEntityCfg,
-    RemoteEntityCfgTable,
-)
-from tmtccmd.util.seqcnt import SeqCountProvider
+from spacepackets.seqcount import SeqCountProvider
 
 _LOGGER = logging.getLogger(__name__)
 
