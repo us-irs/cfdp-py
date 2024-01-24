@@ -10,5 +10,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [v0.1.0]
 
-Initial release of the `cfdpy` library which was split off the
+Initial release of the `cfdp-py` library which was split off the
 [tmtccmd library](https://github.com/robamu-org/tmtccmd).
