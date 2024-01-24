@@ -5,19 +5,19 @@ from pathlib import Path
 from typing import List, Optional, cast
 from unittest.mock import MagicMock
 
-from pycfdp import (
+from cfdppy import (
     IndicationCfg,
     LocalEntityCfg,
     RemoteEntityCfg,
     RemoteEntityCfgTable,
 )
-from pycfdp.defs import CfdpState
-from pycfdp.handler.dest import (
+from cfdppy.defs import CfdpState
+from cfdppy.handler.dest import (
     DestHandler,
     FsmResult,
     TransactionStep,
 )
-from pycfdp.user import (
+from cfdppy.user import (
     FileSegmentRecvdParams,
     MetadataRecvParams,
     TransactionFinishedParams,

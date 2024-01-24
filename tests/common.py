@@ -1,6 +1,6 @@
 from datetime import timedelta
 from spacepackets.util import UnsignedByteField
-from pycfdp.mib import CheckTimerProvider, EntityType
+from cfdppy.mib import CheckTimerProvider, EntityType
 from spacepackets.countdown import Countdown
 
 

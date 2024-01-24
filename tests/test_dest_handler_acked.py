@@ -2,9 +2,9 @@ import struct
 import time
 from typing import List, Tuple
 
-from pycfdp.defs import CfdpState
-from pycfdp.handler.dest import FsmResult, TransactionStep
-from pycfdp.user import MetadataRecvParams, TransactionFinishedParams
+from cfdppy.defs import CfdpState
+from cfdppy.handler.dest import FsmResult, TransactionStep
+from cfdppy.user import MetadataRecvParams, TransactionFinishedParams
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ConditionCode,

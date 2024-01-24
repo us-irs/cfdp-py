@@ -6,8 +6,8 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from pycfdp.defs import CfdpState
-from pycfdp.handler.source import TransactionStep
+from cfdppy.defs import CfdpState
+from cfdppy.handler.source import TransactionStep
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ConditionCode,

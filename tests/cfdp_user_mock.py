@@ -1,6 +1,6 @@
 from spacepackets.cfdp import ConditionCode
-from pycfdp import CfdpUserBase, TransactionId
-from pycfdp.user import (
+from cfdppy import CfdpUserBase, TransactionId
+from cfdppy.user import (
     FileSegmentRecvdParams,
     MetadataRecvParams,
     TransactionFinishedParams,

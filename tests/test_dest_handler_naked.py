@@ -5,17 +5,17 @@ import sys
 import time
 from typing import cast
 
-from pycfdp import (
+from cfdppy import (
     RemoteEntityCfgTable,
 )
-from pycfdp.defs import CfdpState
-from pycfdp.exceptions import NoRemoteEntityCfgFound
-from pycfdp.handler.dest import (
+from cfdppy.defs import CfdpState
+from cfdppy.exceptions import NoRemoteEntityCfgFound
+from cfdppy.handler.dest import (
     DestHandler,
     PduIgnoredForDest,
     TransactionStep,
 )
-from pycfdp.user import MetadataRecvParams, TransactionFinishedParams
+from cfdppy.user import MetadataRecvParams, TransactionFinishedParams
 from crcmod.predefined import mkPredefinedCrcFun
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,

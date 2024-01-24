@@ -4,11 +4,11 @@ import sys
 import tempfile
 from pathlib import Path
 
-from pycfdp.defs import CfdpState
-from pycfdp.handler import FsmResult
-from pycfdp.handler.source import TransactionStep
-from pycfdp.request import PutRequest
-from pycfdp.user import TransactionFinishedParams, TransactionParams
+from cfdppy.defs import CfdpState
+from cfdppy.handler import FsmResult
+from cfdppy.handler.source import TransactionStep
+from cfdppy.request import PutRequest
+from cfdppy.user import TransactionFinishedParams, TransactionParams
 from spacepackets.cfdp import (
     CfdpLv,
     ConditionCode,
