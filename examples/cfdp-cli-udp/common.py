@@ -1,54 +1,51 @@
-from typing import Any, Tuple, Optional, List, Dict
-from multiprocessing import Queue
-from queue import Empty
-from threading import Thread
-import time
-import select
-import socket
-import logging
 import copy
 import json
-
+import logging
+import select
+import socket
+import time
 from datetime import timedelta
-from spacepackets.cfdp import GenericPduPacket
+from multiprocessing import Queue
 from pathlib import Path
-from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
-from spacepackets.cfdp import (
-    TransactionId,
-    ConditionCode,
-    TransmissionMode,
-    ChecksumType,
-)
-from spacepackets.cfdp.tlv import (
-    ProxyMessageType,
-    ProxyPutResponse,
-    ProxyPutResponseParams,
-    MessageToUserTlv,
-    OriginatingTransactionId,
-    ReservedCfdpMessage,
-)
-from spacepackets.util import UnsignedByteField, ByteFieldU16
-from tmtccmd.cfdp.user import (
-    CfdpUserBase,
-    FileSegmentRecvdParams,
-    TransactionParams,
-    MetadataRecvParams,
-    TransactionFinishedParams,
-)
-from tmtccmd.cfdp.exceptions import InvalidDestinationId, SourceFileDoesNotExist
+from queue import Empty
+from threading import Thread
+from typing import Any, Dict, List, Optional, Tuple
 
-from tmtccmd.cfdp import get_packet_destination, PacketDestination
-from tmtccmd.util.countdown import Countdown
-from tmtccmd.cfdp.mib import (
+from cfdppy import PacketDestination, PutRequest, get_packet_destination, CfdpState
+from cfdppy.exceptions import InvalidDestinationId, SourceFileDoesNotExist
+from cfdppy.handler import DestHandler, SourceHandler
+from cfdppy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
     EntityType,
     IndicationCfg,
     RemoteEntityCfg,
 )
-from tmtccmd.cfdp.handler import SourceHandler, DestHandler, CfdpState
-from tmtccmd.cfdp import PutRequest
-from spacepackets.cfdp.pdu import PduFactory, PduHolder
+from cfdppy.user import (
+    CfdpUserBase,
+    FileSegmentRecvdParams,
+    MetadataRecvParams,
+    TransactionFinishedParams,
+    TransactionParams,
+)
+from spacepackets.cfdp import (
+    ChecksumType,
+    ConditionCode,
+    GenericPduPacket,
+    TransactionId,
+    TransmissionMode,
+)
+from spacepackets.cfdp.pdu import AbstractFileDirectiveBase, PduFactory, PduHolder
+from spacepackets.cfdp.tlv import (
+    MessageToUserTlv,
+    OriginatingTransactionId,
+    ProxyMessageType,
+    ProxyPutResponse,
+    ProxyPutResponseParams,
+    ReservedCfdpMessage,
+)
+from spacepackets.countdown import Countdown
+from spacepackets.util import ByteFieldU16, UnsignedByteField
 
 _LOGGER = logging.getLogger(__name__)
 

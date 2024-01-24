@@ -5,9 +5,9 @@ import logging
 from logging import basicConfig
 from multiprocessing import Queue
 
-from cfdpy.handler.dest import DestHandler
-from cfdpy.handler.source import SourceHandler
-from cfdpy.mib import (
+from cfdppy.handler.dest import DestHandler
+from cfdppy.handler.source import SourceHandler
+from cfdppy.mib import (
     LocalEntityCfg,
     RemoteEntityCfgTable,
 )

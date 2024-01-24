@@ -18,6 +18,17 @@ This allows running both entities on the same computer.
 For example, you can run both `remote.py` and `local.py`. This will not do much because the local
 entity will not initiate a put request for this command.
 
+This examples requires the `tmtccmd` dependency for determining CFDP command line arguments
+and coverting them to a `PutRequest` structure.
+
+You can run
+
+```sh
+pip install -r requirements.txt
+```
+
+to install the dependency.
+
 If you want to sent a file from the local application to the remote application, you can use
 the following commands:
 
