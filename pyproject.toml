@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pycfdp"
+name = "cfdp-py"
 description = "Library for high level CCSDS File Delivery Protocol (CFDP) components"
 readme = "README.md"
 version = "0.1.0"
@@ -39,7 +39,7 @@ test = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/us-irs/py-cfdp"
+"Homepage" = "https://github.com/us-irs/cfdp-py"
 
 [tool.ruff]
 ignore = ["E501"]

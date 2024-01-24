@@ -1,12 +1,12 @@
-[![ci](https://github.com/us-irs/py-cfdp/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/py-cfdp/actions/workflows/ci.yml)
-[![Documentation Status](https://readthedocs.org/projects/pycfdp/badge/?version=latest)](https://pycfdp.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/us-irs/py-cfdp/graph/badge.svg?token=YFLM60LCVI)](https://codecov.io/gh/us-irs/py-cfdp)
-[![PyPI version](https://badge.fury.io/py/pycfdp.svg)](https://badge.fury.io/py/pycfdp)
+[![ci](https://github.com/us-irs/cfdp-py/actions/workflows/ci.yml/badge.svg)](https://github.com/us-irs/cfdp-py/actions/workflows/ci.yml)
+[![Documentation Status](https://readthedocs.org/projects/cfdppy/badge/?version=latest)](https://cfdppy.readthedocs.io/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/us-irs/cfdp-py/graph/badge.svg?token=YFLM60LCVI)](https://codecov.io/gh/us-irs/cfdp-py)
+[![PyPI version](https://badge.fury.io/py/cfdppy.svg)](https://badge.fury.io/py/cfdppy)
 
-pycfdp - High level library for CFDP components 
+cfdp-py - High level Python library for CFDP components
 ======================
 
-The `pycfdp` library offers some high-level CCSDS File Delivery Protocol (CFDP) components to
+The `cfdp-py` library offers some high-level CCSDS File Delivery Protocol (CFDP) components to
 perform file transfers according to the [CCSDS Blue Book 727.0-B-5](https://public.ccsds.org/Pubs/727x0b5.pdf).
 The underlying base packet library used to generate the packets to be sent is the
 [spacepackets](https://github.com/us-irs/spacepackets-py) library.
@@ -18,13 +18,13 @@ You can install this package from PyPI
 Linux:
 
 ```sh
-python3 -m pip install pycfdp 
+python3 -m pip install cfdppy 
 ```
 
 Windows:
 
 ```sh
-py -m pip install pycfdp 
+py -m pip install cfdppy 
 ```
 
 # Examples
@@ -38,7 +38,7 @@ first. You also have to install the package with the optional `test` feature:
 
 ```sh
 pip install coverage pytest
-pip install pycfdp[test]
+pip install cfdppy[test]
 ```
 
 Running tests regularly:
