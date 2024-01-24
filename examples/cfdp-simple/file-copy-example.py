@@ -20,10 +20,10 @@ from spacepackets.cfdp.defs import ChecksumType, ConditionCode, TransmissionMode
 from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
 from spacepackets.util import ByteFieldU16, UnsignedByteField
 
-from cfdpy import CfdpState
-from cfdpy.handler.dest import DestHandler
-from cfdpy.handler.source import SourceHandler
-from cfdpy.mib import (
+from cfdppy import CfdpState
+from cfdppy.handler.dest import DestHandler
+from cfdppy.handler.source import SourceHandler
+from cfdppy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
     EntityType,
@@ -32,8 +32,8 @@ from cfdpy.mib import (
     RemoteEntityCfg,
     RemoteEntityCfgTable,
 )
-from cfdpy.request import PutRequest
-from cfdpy.user import (
+from cfdppy.request import PutRequest
+from cfdppy.user import (
     CfdpUserBase,
     FileSegmentRecvdParams,
     MetadataRecvParams,

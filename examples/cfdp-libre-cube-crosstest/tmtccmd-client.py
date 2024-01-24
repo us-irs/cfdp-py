@@ -15,10 +15,10 @@ from pathlib import Path
 from queue import Empty
 from typing import Any
 
-from cfdpy import CfdpState
-from cfdpy.exceptions import InvalidSourceId
-from cfdpy.handler import SourceHandler
-from cfdpy.mib import (
+from cfdppy import CfdpState
+from cfdppy.exceptions import InvalidSourceId
+from cfdppy.handler import SourceHandler
+from cfdppy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
     EntityType,
@@ -26,8 +26,8 @@ from cfdpy.mib import (
     LocalEntityCfg,
     RemoteEntityCfgTable,
 )
-from cfdpy.request import PutRequest
-from cfdpy.user import (
+from cfdppy.request import PutRequest
+from cfdppy.user import (
     CfdpUserBase,
     FileSegmentRecvdParams,
     MetadataRecvParams,
