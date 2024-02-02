@@ -156,6 +156,7 @@ class HostFilestore(VirtualFilestore):
             _LOGGER.warning("File already exists")
             return FilestoreResponseStatusCode.CREATE_NOT_ALLOWED
         try:
+            file.parent.mkdir(parents=True, exist_ok=True)
             file_handle = open(file, "x")
             file_handle.close()
             return FilestoreResponseStatusCode.CREATE_SUCCESS
