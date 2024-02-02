@@ -8,7 +8,7 @@ from spacepackets.cfdp.tlv import MessageToUserTlv
 from spacepackets.cfdp.pdu.file_data import SegmentMetadata
 from spacepackets.cfdp.pdu.finished import FinishedParams
 from spacepackets.util import UnsignedByteField
-from cfdppy.filestore import VirtualFilestore, HostFilestore
+from .filestore import VirtualFilestore, HostFilestore
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -7,13 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Deque, Optional, Tuple
 
-from cfdppy import (
+from .. import (
     CfdpUserBase,
     LocalEntityCfg,
     RemoteEntityCfg,
 )
-from cfdppy.defs import CfdpState
-from cfdppy.exceptions import (
+from ..defs import CfdpState
+from ..exceptions import (
     FsmNotCalledAfterPacketInsertion,
     InvalidDestinationId,
     InvalidNakPdu,
@@ -27,14 +27,14 @@ from cfdppy.exceptions import (
     SourceFileDoesNotExist,
     UnretrievedPdusToBeSent,
 )
-from cfdppy.handler.common import _PositiveAckProcedureParams
-from cfdppy.handler.crc import CrcHelper
-from cfdppy.handler.defs import (
+from ..handler.common import _PositiveAckProcedureParams
+from ..handler.crc import CrcHelper
+from ..handler.defs import (
     _FileParamsBase,
 )
-from cfdppy.mib import CheckTimerProvider, EntityType, RemoteEntityCfgTable
-from cfdppy.request import PutRequest
-from cfdppy.user import TransactionFinishedParams, TransactionParams
+from ..mib import CheckTimerProvider, EntityType, RemoteEntityCfgTable
+from ..request import PutRequest
+from ..user import TransactionFinishedParams, TransactionParams
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ChecksumType,
