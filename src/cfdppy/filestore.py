@@ -15,7 +15,8 @@ FilestoreResult = FilestoreResponseStatusCode
 
 class VirtualFilestore(abc.ABC):
     @abc.abstractmethod
-    def read_data(self, file: Path, offset: Optional[int], read_len: int) -> bytes:
+    def read_data(self, file: Path, offset: Optional[int],
+                  read_len: Optional[int]) -> bytes:
         """This is not used as part of a filestore request, it is used to read a file, for example
         to send it"""
         raise NotImplementedError("Reading file not implemented in virtual filestore")
@@ -155,6 +156,7 @@ class HostFilestore(VirtualFilestore):
             _LOGGER.warning("File already exists")
             return FilestoreResponseStatusCode.CREATE_NOT_ALLOWED
         try:
+            file.parent.mkdir(parents=True, exist_ok=True)
             file_handle = open(file, "x")
             file_handle.close()
             return FilestoreResponseStatusCode.CREATE_SUCCESS
