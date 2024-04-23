@@ -36,6 +36,8 @@ class TestChecksumHelper(TestCase):
         self.file_path = Path(f"{gettempdir()}/crc_file")
         with open(self.file_path, "wb") as file:
             file.write(EXAMPLE_DATA_CFDP)
+        # Kind of re-writing the modular checksum impl here which we are trying to test, but the
+        # numbers/correctness were verified manually using calculators, so this is okay.
         segments_to_add = []
         for i in range(4):
             if (i + 1) * 4 > len(EXAMPLE_DATA_CFDP):
@@ -50,7 +52,6 @@ class TestChecksumHelper(TestCase):
                 )
             )
         full_sum = sum(segments_to_add)
-        print(full_sum)
         full_sum %= 2**32
 
         self.expected_checksum_for_example = struct.pack("!I", full_sum)
