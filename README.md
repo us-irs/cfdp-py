@@ -18,13 +18,13 @@ You can install this package from PyPI
 Linux:
 
 ```sh
-python3 -m pip install cfdppy 
+python3 -m pip install cfdp-py
 ```
 
 Windows:
 
 ```sh
-py -m pip install cfdppy 
+py -m pip install cfdp-py
 ```
 
 # Examples
@@ -38,7 +38,7 @@ first. You also have to install the package with the optional `test` feature:
 
 ```sh
 pip install coverage pytest
-pip install cfdppy[test]
+pip install cfdp-py[test]
 ```
 
 Running tests regularly:
