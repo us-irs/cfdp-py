@@ -61,6 +61,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # Mapping for external packages
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
+    "spacepackets": ("https://spacepackets.readthedocs.io/en/latest/", None),
     "crcmod": ("https://crcmod.sourceforge.net/", None),
 }
 
