@@ -5,9 +5,9 @@
 
 .. _cfdp:
 
-==============================================================
+================================================================
 cfdp-py - A library for the CCSDS File Delivery Protocol (CFDP)
-==============================================================
+================================================================
 
 The ``cfdp-py`` library offers some high-level CCSDS File Delivery Protocol (CFDP) components to
 perform file transfers according to the `CCSDS Blue Book 727.0-B-5`_. The underlying base packet
