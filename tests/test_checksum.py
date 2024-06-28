@@ -4,7 +4,7 @@ from pyfakefs.fake_filesystem_unittest import TestCase
 from tempfile import gettempdir
 from pathlib import Path
 from cfdppy.handler.crc import CrcHelper, calc_modular_checksum
-from cfdppy.user import HostFilestore
+from cfdppy.user import NativeFilestore
 from spacepackets.cfdp import ChecksumType
 
 
@@ -32,7 +32,7 @@ EXAMPLE_DATA_CFDP = bytes(
 class TestChecksumHelper(TestCase):
     def setUp(self):
         self.setUpPyfakefs()
-        self.crc_helper = CrcHelper(ChecksumType.NULL_CHECKSUM, HostFilestore())
+        self.crc_helper = CrcHelper(ChecksumType.NULL_CHECKSUM, NativeFilestore())
         self.file_path = Path(f"{gettempdir()}/crc_file")
         with open(self.file_path, "wb") as file:
             file.write(EXAMPLE_DATA_CFDP)

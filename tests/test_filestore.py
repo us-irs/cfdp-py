@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 
 from pyfakefs.fake_filesystem_unittest import TestCase
-from cfdppy.filestore import HostFilestore, FilestoreResult
+from cfdppy.filestore import NativeFilestore, FilestoreResult
 
 
 class TestCfdpHostFilestore(TestCase):
@@ -15,7 +15,7 @@ class TestCfdpHostFilestore(TestCase):
         self.test_dir_name_0 = Path(f"{self.temp_dir}/cfdp_test_folder0")
         self.test_dir_name_1 = Path(f"{self.temp_dir}/cfdp_test_folder1")
         self.test_list_dir_name = Path(f"{self.temp_dir}/list-dir-test.txt")
-        self.filestore = HostFilestore()
+        self.filestore = NativeFilestore()
 
     def test_creation(self):
         res = self.filestore.create_file(self.test_file_name_0)
@@ -83,7 +83,7 @@ class TestCfdpHostFilestore(TestCase):
         self.assertEqual(self.filestore.read_data(self.test_file_name_1, 0), file_data)
 
     def test_list_dir(self):
-        filestore = HostFilestore()
+        filestore = NativeFilestore()
         tempdir = Path(tempfile.gettempdir())
         if os.path.exists(self.test_list_dir_name):
             os.remove(self.test_list_dir_name)

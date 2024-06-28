@@ -8,7 +8,7 @@ from spacepackets.cfdp.tlv import MessageToUserTlv
 from spacepackets.cfdp.pdu.file_data import SegmentMetadata
 from spacepackets.cfdp.pdu.finished import FinishedParams
 from spacepackets.util import UnsignedByteField
-from cfdppy.filestore import VirtualFilestore, HostFilestore
+from cfdppy.filestore import VirtualFilestore, NativeFilestore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class CfdpUserBase(ABC):
 
     def __init__(self, vfs: Optional[VirtualFilestore] = None):
         if vfs is None:
-            vfs = HostFilestore()
+            vfs = NativeFilestore()
         self.vfs = vfs
 
     @abstractmethod
