@@ -338,7 +338,7 @@ class SourceHandler:
         self._params.dest_id = request.destination_id
         self.states._num_packets_ready = 0
         self.states.state = CfdpState.BUSY
-        self._setup_transmission_mode()
+        self._setup_transmission_params()
         if self._params.transmission_mode == TransmissionMode.UNACKNOWLEDGED:
             _LOGGER.debug("Starting Put Request handling in NAK mode")
         elif self._params.transmission_mode == TransmissionMode.ACKNOWLEDGED:
@@ -869,7 +869,7 @@ class SourceHandler:
         )
         self._params.positive_ack_params.ack_counter = 0
 
-    def _setup_transmission_mode(self):
+    def _setup_transmission_params(self):
         assert self._put_req is not None
         assert self._params.remote_cfg is not None
         # Transmission mode settings in the put request override settings from the remote MIB
