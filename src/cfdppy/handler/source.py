@@ -527,10 +527,9 @@ class SourceHandler:
             self._notice_of_completion()
 
     def _transaction_start(self):
-        file_size = 0
         originating_transaction_id = self._check_for_originating_id()
         self._prepare_file_params()
-        self._prepare_pdu_conf(file_size)
+        self._prepare_pdu_conf(self._params.fp.file_size)
         self._get_next_transfer_seq_num()
         self._calculate_max_file_seg_len()
         self._params.transaction_id = TransactionId(
@@ -577,7 +576,7 @@ class SourceHandler:
             if not self._put_req.source_file.exists():
                 # TODO: Handle this exception in the handler, reset CFDP state machine
                 raise SourceFileDoesNotExist(self._put_req.source_file)
-            file_size = self._put_req.source_file.stat().st_size
+            file_size = self.user.vfs.file_size(self._put_req.source_file)
             if file_size == 0:
                 self._params.fp.metadata_only = True
             else:
@@ -588,10 +587,11 @@ class SourceHandler:
         # a previous step.
         assert self._put_req is not None
         assert self._params.remote_cfg is not None
-        if file_size > pow(2, 32) - 1:
-            self._params.pdu_conf.file_flag = LargeFileFlag.LARGE
-        else:
-            self._params.pdu_conf.file_flag = LargeFileFlag.NORMAL
+        if not self._params.fp.metadata_only:
+            if file_size > pow(2, 32) - 1:
+                self._params.pdu_conf.file_flag = LargeFileFlag.LARGE
+            else:
+                self._params.pdu_conf.file_flag = LargeFileFlag.NORMAL
         if self._put_req.seg_ctrl is not None:
             self._params.pdu_conf.seg_ctrl = self._put_req.seg_ctrl
         # Both the source entity and destination entity ID field must have the same size.
