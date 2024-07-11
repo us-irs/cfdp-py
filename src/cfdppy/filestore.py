@@ -43,6 +43,10 @@ class VirtualFilestore(abc.ABC):
         pass
 
     @abc.abstractmethod
+    def file_size(self, file: Path) -> int:
+        pass
+
+    @abc.abstractmethod
     def write_data(self, file: Path, data: bytes, offset: Optional[int]):
         """This is not used as part of a filestore request, it is used to build up the received
         file.
@@ -98,7 +102,7 @@ class VirtualFilestore(abc.ABC):
         return FilestoreResponseStatusCode.NOT_PERFORMED
 
 
-class HostFilestore(VirtualFilestore):
+class NativeFilestore(VirtualFilestore):
     def __init__(self):
         pass
 
@@ -107,7 +111,7 @@ class HostFilestore(VirtualFilestore):
     ) -> bytes:
         if not file.exists():
             raise FileNotFoundError(file)
-        file_size = file.stat().st_size
+        file_size = self.file_size(file)
         if read_len is None:
             read_len = file_size
         if offset is None:
@@ -115,6 +119,11 @@ class HostFilestore(VirtualFilestore):
         with open(file, "rb") as rf:
             rf.seek(offset)
             return rf.read(read_len)
+
+    def file_size(self, file: Path) -> int:
+        if not file.exists():
+            raise FileNotFoundError(file)
+        return file.stat().st_size
 
     def read_from_opened_file(self, bytes_io: BinaryIO, offset: int, read_len: int):
         bytes_io.seek(offset)
@@ -255,3 +264,6 @@ class HostFilestore(VirtualFilestore):
             os.system(f"{cmd} >> {target_file}")
             os.chdir(curr_path)
         return FilestoreResponseStatusCode.SUCCESS
+
+
+HostFilestore = NativeFilestore
