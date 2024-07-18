@@ -93,7 +93,7 @@ class TransactionStep(enum.Enum):
 @dataclass
 class _SourceFileParams(_FileParamsBase):
     # This flag accounts for the empty file case where an EOF still needs to be sent.
-    no_eof: bool = False
+    empty_file: bool = False
 
     @classmethod
     def empty(cls) -> _SourceFileParams:
@@ -102,11 +102,12 @@ class _SourceFileParams(_FileParamsBase):
             segment_len=0,
             crc32=bytes(),
             file_size=0,
-            no_eof=False,
+            empty_file=False,
             metadata_only=False,
         )
 
     def reset(self):
+        self.empty_file = False
         super().reset()
 
 
@@ -571,7 +572,6 @@ class SourceHandler:
         assert self._put_req is not None
         if self._put_req.metadata_only:
             self._params.fp.metadata_only = True
-            self._params.fp.no_eof = True
         else:
             assert self._put_req.source_file is not None
             if not self._put_req.source_file.exists():
@@ -579,7 +579,7 @@ class SourceHandler:
                 raise SourceFileDoesNotExist(self._put_req.source_file)
             file_size = self.user.vfs.file_size(self._put_req.source_file)
             if file_size == 0:
-                self._params.fp.metadata_only = True
+                self._params.fp.empty_file = True
             else:
                 self._params.fp.file_size = file_size
 
@@ -686,16 +686,16 @@ class SourceHandler:
             self._prepare_progressing_file_data_pdu()
             # Not finished yet. We exit here to allow the user to do flow control.
             return True
-        # Special case: Metadata Only, no EOF required.
-        if self._params.fp.no_eof:
+        if self._params.fp.empty_file:
+            # Special case: Empty file, EOF still required.
+            self._params.cond_code_eof = ConditionCode.NO_ERROR
+            self.states.step = TransactionStep.SENDING_EOF
+        elif self._params.fp.metadata_only:
+            # Special case: Metadata Only, no EOF required.
             if self._params.closure_requested:
                 self.states.step = TransactionStep.WAITING_FOR_FINISHED
             else:
                 self.states.step = TransactionStep.NOTICE_OF_COMPLETION
-        else:
-            # Special case: Empty file, EOF still required.
-            self._params.cond_code_eof = ConditionCode.NO_ERROR
-            self.states.step = TransactionStep.SENDING_EOF
         return False
 
     def __handle_retransmission(self) -> bool:
