@@ -92,7 +92,8 @@ class TransactionStep(enum.Enum):
 
 @dataclass
 class _SourceFileParams(_FileParamsBase):
-    no_eof: bool = False
+    # This flag accounts for the empty file case where an EOF still needs to be sent.
+    empty_file: bool = False
 
     @classmethod
     def empty(cls) -> _SourceFileParams:
@@ -101,11 +102,12 @@ class _SourceFileParams(_FileParamsBase):
             segment_len=0,
             crc32=bytes(),
             file_size=0,
-            no_eof=False,
+            empty_file=False,
             metadata_only=False,
         )
 
     def reset(self):
+        self.empty_file = False
         super().reset()
 
 
@@ -570,7 +572,6 @@ class SourceHandler:
         assert self._put_req is not None
         if self._put_req.metadata_only:
             self._params.fp.metadata_only = True
-            self._params.fp.no_eof = True
         else:
             assert self._put_req.source_file is not None
             if not self._put_req.source_file.exists():
@@ -578,7 +579,7 @@ class SourceHandler:
                 raise SourceFileDoesNotExist(self._put_req.source_file)
             file_size = self.user.vfs.file_size(self._put_req.source_file)
             if file_size == 0:
-                self._params.fp.metadata_only = True
+                self._params.fp.empty_file = True
             else:
                 self._params.fp.file_size = file_size
 
@@ -670,24 +671,31 @@ class SourceHandler:
         )
 
     def _sending_file_data_fsm(self) -> bool:
-        # This function returns whether the internal state was advanced or not.
+        # This function returns whether the FSM should return or not.
         # During the PDU send phase, handle the re-transmission of missing files in
         # acknowledged mode.
         if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             if self.__handle_retransmission():
                 return True
-        if self._prepare_progressing_file_data_pdu():
+
+        # No need to send a file data PDU for an empty file
+        if (
+            not self._params.fp.metadata_only
+            and self._params.fp.progress < self._params.fp.file_size
+        ):
+            self._prepare_progressing_file_data_pdu()
+            # Not finished yet. We exit here to allow the user to do flow control.
             return True
-        if self._params.fp.no_eof:
-            # Special case: Metadata Only.
+        if self._params.fp.empty_file:
+            # Special case: Empty file, EOF still required.
+            self._params.cond_code_eof = ConditionCode.NO_ERROR
+            self.states.step = TransactionStep.SENDING_EOF
+        elif self._params.fp.metadata_only:
+            # Special case: Metadata Only, no EOF required.
             if self._params.closure_requested:
                 self.states.step = TransactionStep.WAITING_FOR_FINISHED
             else:
                 self.states.step = TransactionStep.NOTICE_OF_COMPLETION
-        else:
-            # Special case: Empty file.
-            self._params.cond_code_eof = ConditionCode.NO_ERROR
-            self.states.step = TransactionStep.SENDING_EOF
         return False
 
     def __handle_retransmission(self) -> bool:
@@ -888,17 +896,12 @@ class SourceHandler:
         self._pdus_to_be_sent.append(PduHolder(packet))
         self.states._num_packets_ready += 1
 
-    def _prepare_progressing_file_data_pdu(self) -> bool:
+    def _prepare_progressing_file_data_pdu(self):
         """Prepare the next file data PDU, which also progresses the file copy operation.
 
         :return: True if a packet was prepared, False if PDU handling is done and the next steps
             in the Copy File procedure can be performed
         """
-        # No need to send a file data PDU for an empty file
-        if self._params.fp.metadata_only:
-            return False
-        if self._params.fp.progress == self._params.fp.file_size:
-            return False
         if self._params.fp.file_size < self._params.fp.segment_len:
             read_len = self._params.fp.file_size
         else:
@@ -911,7 +914,6 @@ class SourceHandler:
                 read_len = self._params.fp.segment_len
         self._prepare_file_data_pdu(self._params.fp.progress, read_len)
         self._params.fp.progress += read_len
-        return True
 
     def _prepare_file_data_pdu(self, offset: int, read_len: int):
         """Generic function to prepare a file data PDU. This function can also be used to
