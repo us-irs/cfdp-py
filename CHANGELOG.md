@@ -13,11 +13,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Fixed
 
 - The large file flag was not set properly in the source handler for large file transfers.
+- The CRC algorithms will now be used for empty files as well instead of hardcoding the
+  checksum type to the NULL checksum. This was a bug which did not show directly for
+  checksums like CRC32 because those have an initial value of 0x0
 
 ## Changed
 
 - Added `file_size` abstract method to `VirtualFilestore`
 - Renamed `HostFilestore` to `NativeFilestore`, but keep old name alias for backwards compatibility.
+- Added `calculate_checksum` and `verify_checksum` to `VirtualFilestore` interface.
 
 # [v0.1.2] 2024-06-04
 

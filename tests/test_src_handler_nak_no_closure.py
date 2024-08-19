@@ -17,6 +17,7 @@ from spacepackets.cfdp import (
     TransactionId,
     TransmissionMode,
 )
+from spacepackets.cfdp.defs import ChecksumType
 from spacepackets.cfdp.pdu import DeliveryCode, FileStatus
 from spacepackets.cfdp.pdu.finished import FinishedParams
 from spacepackets.cfdp.tlv import (
@@ -239,7 +240,10 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
         self.dest_id = ByteFieldU8(2)
         self.source_handler.source_id = self.source_id
         self._transaction_with_file_data_wrapper(
-            put_req, data=None, originating_transaction_id=None
+            put_req,
+            data=None,
+            originating_transaction_id=None,
+            crc_type=ChecksumType.NULL_CHECKSUM,
         )
         self.source_handler.state_machine()
         self._test_transaction_completion()

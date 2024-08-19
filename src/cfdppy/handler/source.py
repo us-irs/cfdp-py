@@ -28,7 +28,6 @@ from cfdppy.exceptions import (
     UnretrievedPdusToBeSent,
 )
 from cfdppy.handler.common import _PositiveAckProcedureParams
-from cfdppy.handler.crc import CrcHelper
 from cfdppy.handler.defs import (
     _FileParamsBase,
 )
@@ -36,8 +35,6 @@ from cfdppy.mib import CheckTimerProvider, EntityType, RemoteEntityCfgTable
 from cfdppy.request import PutRequest
 from cfdppy.user import TransactionFinishedParams, TransactionParams
 from spacepackets.cfdp import (
-    NULL_CHECKSUM_U32,
-    ChecksumType,
     ConditionCode,
     CrcFlag,
     Direction,
@@ -49,6 +46,7 @@ from spacepackets.cfdp import (
     TransactionId,
     TransmissionMode,
 )
+from spacepackets.cfdp.defs import ChecksumType
 from spacepackets.cfdp.pdu import (
     AbstractFileDirectiveBase,
     AckPdu,
@@ -251,7 +249,6 @@ class SourceHandler:
         self.seq_num_provider = seq_num_provider
         self.check_timer_provider = check_timer_provider
         self._params = _TransferFieldWrapper(cfg.local_entity_id)
-        self._crc_helper = CrcHelper(ChecksumType.NULL_CHECKSUM, self.user.vfs)
         self._put_req: Optional[PutRequest] = None
         self._inserted_pdu = PduHolder(None)
         self._pdus_to_be_sent: Deque[PduHolder] = deque()
@@ -636,9 +633,10 @@ class SourceHandler:
         assert self._put_req is not None
         options = []
         if self._put_req.metadata_only:
+            assert self._params.remote_cfg is not None
             params = MetadataParams(
                 closure_requested=self._params.closure_requested,
-                checksum_type=self._crc_helper.checksum_type,
+                checksum_type=ChecksumType.NULL_CHECKSUM,
                 file_size=0,
                 dest_file_name=None,
                 source_file_name=None,
@@ -662,10 +660,11 @@ class SourceHandler:
         )
 
     def _prepare_metadata_base_params_with_metadata(self) -> MetadataParams:
+        assert self._params.remote_cfg is not None
         return MetadataParams(
             dest_file_name=self._put_req.dest_file.as_posix(),  # type: ignore
             source_file_name=self._put_req.source_file.as_posix(),  # type: ignore
-            checksum_type=self._crc_helper.checksum_type,
+            checksum_type=self._params.remote_cfg.crc_type,
             closure_requested=self._params.closure_requested,
             file_size=self._params.fp.file_size,
         )
@@ -890,7 +889,6 @@ class SourceHandler:
         # This also sets the field of the PDU configuration struct.
         self._params.transmission_mode = trans_mode_to_set
         self._params.closure_requested = closure_req_to_set
-        self._crc_helper.checksum_type = self._params.remote_cfg.crc_type
 
     def _add_packet_to_be_sent(self, packet: GenericPduPacket):
         self._pdus_to_be_sent.append(PduHolder(packet))
@@ -1005,15 +1003,13 @@ class SourceHandler:
         self.reset()
 
     def _checksum_calculation(self, size_to_calculate: int) -> bytes:
-        if self._params.fp.file_size == 0:
-            # Empty file, use null checksum
-            crc = NULL_CHECKSUM_U32
-        else:
-            assert self._put_req is not None
-            assert self._put_req.source_file is not None
-            crc = self._crc_helper.calc_for_file(
-                file_path=self._put_req.source_file,
-                file_sz=size_to_calculate,
-                segment_len=self._params.fp.segment_len,
-            )
-        return crc
+        assert self._put_req is not None
+        assert self._put_req.source_file is not None
+        assert self._params.remote_cfg is not None
+
+        return self.user.vfs.calculate_checksum(
+            checksum_type=self._params.remote_cfg.crc_type,
+            file_path=self._put_req.source_file,
+            file_sz=size_to_calculate,
+            segment_len=self._params.fp.segment_len,
+        )

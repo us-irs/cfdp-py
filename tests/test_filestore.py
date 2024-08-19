@@ -1,9 +1,31 @@
 import os.path
 from pathlib import Path
 import tempfile
+import struct
 
+from cfdppy.crc import calc_modular_checksum
 from pyfakefs.fake_filesystem_unittest import TestCase
 from cfdppy.filestore import NativeFilestore, FilestoreResult
+
+EXAMPLE_DATA_CFDP = bytes(
+    [
+        0x00,
+        0x01,
+        0x02,
+        0x03,
+        0x04,
+        0x05,
+        0x06,
+        0x07,
+        0x08,
+        0x09,
+        0x0A,
+        0x0B,
+        0x0C,
+        0x0D,
+        0x0E,
+    ]
+)
 
 
 class TestCfdpHostFilestore(TestCase):
@@ -16,6 +38,29 @@ class TestCfdpHostFilestore(TestCase):
         self.test_dir_name_1 = Path(f"{self.temp_dir}/cfdp_test_folder1")
         self.test_list_dir_name = Path(f"{self.temp_dir}/list-dir-test.txt")
         self.filestore = NativeFilestore()
+
+        self.file_path = Path(f"{tempfile.gettempdir()}/crc_file")
+        with open(self.file_path, "wb") as file:
+            file.write(EXAMPLE_DATA_CFDP)
+        # Kind of re-writing the modular checksum impl here which we are trying to test, but the
+        # numbers/correctness were verified manually using calculators, so this is okay.
+        segments_to_add = []
+        for i in range(4):
+            if (i + 1) * 4 > len(EXAMPLE_DATA_CFDP):
+                data_to_add = EXAMPLE_DATA_CFDP[i * 4 :].ljust(4, bytes([0]))
+            else:
+                data_to_add = EXAMPLE_DATA_CFDP[i * 4 : (i + 1) * 4]
+            segments_to_add.append(
+                int.from_bytes(
+                    data_to_add,
+                    byteorder="big",
+                    signed=False,
+                )
+            )
+        full_sum = sum(segments_to_add)
+        full_sum %= 2**32
+
+        self.expected_checksum_for_example = struct.pack("!I", full_sum)
 
     def test_creation(self):
         res = self.filestore.create_file(self.test_file_name_0)
@@ -93,5 +138,11 @@ class TestCfdpHostFilestore(TestCase):
         )
         self.assertTrue(res == FilestoreResult.SUCCESS)
 
+    def test_modular_checksum(self):
+        self.assertEqual(
+            calc_modular_checksum(self.file_path), self.expected_checksum_for_example
+        )
+
     def tearDown(self):
-        pass
+        if self.file_path.exists():
+            os.remove(self.file_path)

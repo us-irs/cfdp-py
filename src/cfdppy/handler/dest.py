@@ -23,7 +23,6 @@ from cfdppy.handler.common import (
     _PositiveAckProcedureParams,
     get_packet_destination,
 )
-from cfdppy.handler.crc import CrcHelper
 from cfdppy.handler.defs import (
     _FileParamsBase,
 )
@@ -240,6 +239,7 @@ class _DestFieldWrapper:
         self.check_timer: Optional[Countdown] = None
         self.current_check_count: int = 0
         self.closure_requested: bool = False
+        self.checksum_type: ChecksumType = ChecksumType.NULL_CHECKSUM
         self.finished_params: FinishedParams = FinishedParams(
             delivery_code=DeliveryCode.DATA_INCOMPLETE,
             file_status=FileStatus.FILE_STATUS_UNREPORTED,
@@ -254,23 +254,6 @@ class _DestFieldWrapper:
         self.acked_params = _AckedModeParams()
         self.positive_ack_params = _PositiveAckProcedureParams()
         self.last_inserted_packet = PduHolder(None)
-
-    def reset(self):
-        self.transaction_id = None
-        self.closure_requested = False
-        self.pdu_conf = PduConfig.empty()
-        self.finished_params = FinishedParams(
-            condition_code=ConditionCode.NO_ERROR,
-            delivery_code=DeliveryCode.DATA_INCOMPLETE,
-            file_status=FileStatus.FILE_STATUS_UNREPORTED,
-        )
-        self.finished_params.file_status = FileStatus.FILE_STATUS_UNREPORTED
-        self.completion_disposition = CompletionDisposition.COMPLETED
-        self.fp.reset()
-        self.acked_params = _AckedModeParams()
-        self.remote_cfg = None
-        self.last_inserted_packet.pdu = None
-        self.current_check_count = 0
 
 
 class FsmResult:
@@ -339,9 +322,6 @@ class DestHandler:
         self.user = user
         self.check_timer_provider = check_timer_provider
         self._params = _DestFieldWrapper()
-        self._cksum_verif_helper: CrcHelper = CrcHelper(
-            ChecksumType.NULL_CHECKSUM, user.vfs
-        )
         self._pdus_to_be_sent: Deque[PduHolder] = deque()
 
     @property
@@ -499,7 +479,7 @@ class DestHandler:
         """This function is public to allow completely resetting the handler, but it is explicitely
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
-        self._params.reset()
+        self._params = _DestFieldWrapper()
         self._pdus_to_be_sent.clear()
         self.states.state = CfdpState.IDLE
         self.states.step = TransactionStep.IDLE
@@ -596,7 +576,7 @@ class DestHandler:
     def _start_transaction(self, metadata_pdu: MetadataPdu) -> bool:
         if self.states.state != CfdpState.IDLE:
             return False
-        self._params.reset()
+        self._params = _DestFieldWrapper()
         self._common_first_packet_handler(metadata_pdu)
         self._handle_metadata_packet(metadata_pdu)
         return True
@@ -686,7 +666,7 @@ class DestHandler:
                 )
 
     def _common_first_packet_not_metadata_pdu_handler(self, pdu: GenericPduPacket):
-        self._params.reset()
+        self._params = _DestFieldWrapper()
         self._common_first_packet_handler(pdu)
         self.states.step = TransactionStep.WAITING_FOR_METADATA
         self._params.acked_params.metadata_missing = True
@@ -705,7 +685,7 @@ class DestHandler:
         self._params.remote_cfg = self.remote_cfg_table.get_cfg(pdu.source_entity_id)
 
     def _handle_metadata_packet(self, metadata_pdu: MetadataPdu):
-        self._cksum_verif_helper.checksum_type = metadata_pdu.checksum_type
+        self._params.checksum_type = metadata_pdu.checksum_type
         self._params.closure_requested = metadata_pdu.closure_requested
         self._params.acked_params.metadata_missing = False
         if metadata_pdu.dest_file_name is None or metadata_pdu.source_file_name is None:
@@ -1090,13 +1070,15 @@ class DestHandler:
     def _checksum_verify(self) -> bool:
         file_delivery_complete = False
         if (
-            self._cksum_verif_helper.checksum_type == ChecksumType.NULL_CHECKSUM
+            self._params.checksum_type == ChecksumType.NULL_CHECKSUM
             or self._params.fp.metadata_only
         ):
             file_delivery_complete = True
         else:
-            crc32 = self._cksum_verif_helper.calc_for_file(
-                self._params.fp.file_name, self._params.fp.progress
+            crc32 = self.user.vfs.calculate_checksum(
+                self._params.checksum_type,
+                self._params.fp.file_name,
+                self._params.fp.progress,
             )
             if crc32 == self._params.fp.crc32:
                 file_delivery_complete = True
