@@ -50,6 +50,14 @@ Exceptions Module
    :undoc-members:
    :show-inheritance:
 
+CRC Module
+-------------------------------------------
+
+.. automodule:: cfdppy.crc
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Definitions Module
 --------------------------
 

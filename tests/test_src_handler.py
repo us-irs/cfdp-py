@@ -20,7 +20,6 @@ from cfdppy.user import TransactionFinishedParams, TransactionParams
 from crcmod.predefined import PredefinedCrc
 from pyfakefs.fake_filesystem_unittest import TestCase
 from spacepackets.cfdp import (
-    NULL_CHECKSUM_U32,
     ChecksumType,
     ConditionCode,
     FinishedParams,
@@ -124,7 +123,8 @@ class TestCfdpSourceHandler(TestCase):
             closure_requested=None,
         )
         metadata_pdu, transaction_id = self._start_source_transaction(put_req)
-        eof_pdu = self._handle_eof_pdu(transaction_id, NULL_CHECKSUM_U32, 0)
+        crc32 = PredefinedCrc("crc32").digest()
+        eof_pdu = self._handle_eof_pdu(transaction_id, crc32, 0)
         return transaction_id, metadata_pdu, eof_pdu
 
     def _handle_eof_pdu(
@@ -236,6 +236,7 @@ class TestCfdpSourceHandler(TestCase):
         put_req: PutRequest,
         data: Optional[bytes],
         originating_transaction_id: Optional[TransactionId] = None,
+        crc_type: ChecksumType = ChecksumType.CRC_32,
     ) -> TransactionStartParams:
         file_size = None
         crc32 = None
@@ -245,7 +246,7 @@ class TestCfdpSourceHandler(TestCase):
             file_size = put_req.source_file.stat().st_size
         self.local_cfg.local_entity_id = self.source_id
         metadata_pdu, transaction_id = self._start_source_transaction(
-            put_req, originating_transaction_id
+            put_req, originating_transaction_id, crc_type
         )
         self.assertEqual(transaction_id.source_id.value, self.source_id.value)
         self.assertEqual(transaction_id.seq_num.value, self.expected_seq_num)
@@ -284,6 +285,7 @@ class TestCfdpSourceHandler(TestCase):
         self,
         put_request: PutRequest,
         expected_originating_id: Optional[TransactionId] = None,
+        crc_type: ChecksumType = ChecksumType.CRC_32,
     ) -> Tuple[MetadataPdu, TransactionId]:
         self.source_handler.put_request(put_request)
         fsm_res = self.source_handler.state_machine()
@@ -305,7 +307,7 @@ class TestCfdpSourceHandler(TestCase):
             self.assertEqual(
                 metadata_pdu.params.closure_requested, put_request.closure_requested
             )
-        self.assertEqual(metadata_pdu.checksum_type, ChecksumType.CRC_32)
+        self.assertEqual(metadata_pdu.checksum_type, crc_type)
         source_file_as_posix = None
         if put_request.source_file is not None:
             source_file_as_posix = put_request.source_file.as_posix()

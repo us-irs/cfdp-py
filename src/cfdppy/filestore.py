@@ -6,7 +6,12 @@ import platform
 from pathlib import Path
 from typing import Optional, BinaryIO
 
+from cfdppy.crc import calc_modular_checksum
+from crcmod.predefined import PredefinedCrc
+from spacepackets.cfdp.defs import NULL_CHECKSUM_U32, ChecksumType
 from spacepackets.cfdp.tlv import FilestoreResponseStatusCode
+from cfdppy.exceptions import ChecksumNotImplemented
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,6 +105,41 @@ class VirtualFilestore(abc.ABC):
     ) -> FilestoreResponseStatusCode:
         _LOGGER.warning("Listing directory not implemented in virtual filestore")
         return FilestoreResponseStatusCode.NOT_PERFORMED
+
+    @abc.abstractmethod
+    def calculate_checksum(
+        self,
+        checksum_type: ChecksumType,
+        file_path: Path,
+        size_to_verify: int,
+        segment_len: int = 4096,
+    ) -> bytes:
+        """Calculate the checksum for a given file.
+
+        Raises
+        -------
+
+        ValueError
+            Invalid input parameters
+        FileNotFoundError
+            File for checksum calculation does not exist
+        """
+        pass
+
+    def verify_checksum(
+        self,
+        checksum: bytes,
+        checksum_type: ChecksumType,
+        file_path: Path,
+        size_to_verify: int,
+        segment_len: int = 4096,
+    ) -> bool:
+        return (
+            self.calculate_checksum(
+                checksum_type, file_path, size_to_verify, segment_len
+            )
+            == checksum
+        )
 
 
 class NativeFilestore(VirtualFilestore):
@@ -264,6 +304,52 @@ class NativeFilestore(VirtualFilestore):
             os.system(f"{cmd} >> {target_file}")
             os.chdir(curr_path)
         return FilestoreResponseStatusCode.SUCCESS
+
+    def _verify_checksum(self, checksum_type: ChecksumType):
+        if checksum_type not in [
+            ChecksumType.CRC_32,
+            ChecksumType.CRC_32C,
+        ]:
+            raise ChecksumNotImplemented(checksum_type)
+
+    def checksum_type_to_crcmod_str(self, checksum_type: ChecksumType) -> Optional[str]:
+        if checksum_type == ChecksumType.CRC_32:
+            return "crc32"
+        elif checksum_type == ChecksumType.CRC_32C:
+            return "crc32c"
+        raise ChecksumNotImplemented(checksum_type)
+
+    def _generate_crc_calculator(self, checksum_type: ChecksumType) -> PredefinedCrc:
+        self._verify_checksum(checksum_type)
+        return PredefinedCrc(self.checksum_type_to_crcmod_str(checksum_type))
+
+    def calculate_checksum(
+        self,
+        checksum_type: ChecksumType,
+        file_path: Path,
+        file_sz: int,
+        segment_len: int = 4096,
+    ) -> bytes:
+        if checksum_type == ChecksumType.NULL_CHECKSUM:
+            return NULL_CHECKSUM_U32
+        if not file_path.exists():
+            raise FileNotFoundError(file_path)
+        if checksum_type == ChecksumType.MODULAR:
+            return calc_modular_checksum(file_path)
+        if segment_len == 0:
+            raise ValueError("segment length can not be 0")
+        crc_obj = self._generate_crc_calculator(checksum_type)
+        current_offset = 0
+        # Calculate the file CRC
+        with open(file_path, "rb") as file:
+            while current_offset < file_sz:
+                read_len = min(segment_len, file_sz - current_offset)
+                if read_len > 0:
+                    crc_obj.update(
+                        self.read_from_opened_file(file, current_offset, read_len)
+                    )
+                current_offset += read_len
+            return crc_obj.digest()
 
 
 HostFilestore = NativeFilestore
