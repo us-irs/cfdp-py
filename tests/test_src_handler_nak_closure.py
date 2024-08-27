@@ -95,7 +95,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         finish_pdu = self._prepare_finish_pdu(metadata_pdu.pdu_header.pdu_conf)
         finish_pdu.pdu_file_directive.pdu_header.direction = Direction.TOWARDS_RECEIVER
         with self.assertRaises(InvalidPduDirection):
-            self.source_handler.insert_packet(finish_pdu)
+            self.source_handler.state_machine(finish_pdu)
 
     def test_cancelled_transaction(self):
         # This tests generates two file data PDUs
@@ -136,7 +136,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         finish_pdu = self._regular_transaction_start(put_req)
         finish_pdu.pdu_file_directive.pdu_conf.source_entity_id = ByteFieldEmpty()
         with self.assertRaises(InvalidSourceId) as cm:
-            self.source_handler.insert_packet(finish_pdu)
+            self.source_handler.state_machine(finish_pdu)
         exception = cm.exception
         self.assertEqual(exception.found_src_id, ByteFieldEmpty())
         self.assertEqual(exception.expected_src_id, ByteFieldU16(1))
@@ -150,7 +150,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         finish_pdu = self._regular_transaction_start(put_req)
         finish_pdu.pdu_file_directive.pdu_conf.dest_entity_id = ByteFieldEmpty()
         with self.assertRaises(InvalidDestinationId) as cm:
-            self.source_handler.insert_packet(finish_pdu)
+            self.source_handler.state_machine(finish_pdu)
         exception = cm.exception
         self.assertEqual(exception.found_dest_id, ByteFieldEmpty())
         self.assertEqual(exception.expected_dest_id, ByteFieldU16(3))
@@ -174,7 +174,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
             CfdpState.BUSY,
             TransactionStep.WAITING_FOR_FINISHED,
         )
-        self.source_handler.insert_packet(self._prepare_finish_pdu(base_conf))
+        self.source_handler.state_machine(self._prepare_finish_pdu(base_conf))
 
     def _prepare_finish_pdu(self, base_conf: PduConfig):
         params = FinishedParams(

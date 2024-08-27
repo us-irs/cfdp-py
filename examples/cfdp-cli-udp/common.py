@@ -4,6 +4,7 @@ import logging
 import select
 import socket
 import time
+import threading
 from datetime import timedelta
 from multiprocessing import Queue
 from pathlib import Path
@@ -31,7 +32,6 @@ from cfdppy.user import (
 from spacepackets.cfdp import (
     ChecksumType,
     ConditionCode,
-    GenericPduPacket,
     TransactionId,
     TransmissionMode,
 )
@@ -299,6 +299,7 @@ class UdpServer(Thread):
         tx_queue: Queue,
         source_entity_rx_queue: Queue,
         dest_entity_rx_queue: Queue,
+        stop_signal: threading.Event,
     ):
         super().__init__()
         self.sleep_time = sleep_time
@@ -308,12 +309,15 @@ class UdpServer(Thread):
         self.udp_socket.bind(addr)
         self.tm_queue = tx_queue
         self.last_sender = None
+        self.stop_signal = stop_signal
         self.source_entity_queue = source_entity_rx_queue
         self.dest_entity_queue = dest_entity_rx_queue
 
     def run(self):
         _LOGGER.info(f"Starting UDP server on {self.addr}")
         while True:
+            if self.stop_signal.is_set():
+                break
             self.periodic_operation()
             time.sleep(self.sleep_time)
 
@@ -324,6 +328,7 @@ class UdpServer(Thread):
                 break
             # Perform PDU routing.
             packet_dest = get_packet_destination(next_packet.pdu)
+            _LOGGER.debug(f"UDP server: Routing {next_packet} to {packet_dest}")
             if packet_dest == PacketDestination.DEST_HANDLER:
                 self.dest_entity_queue.put(next_packet.pdu)
             elif packet_dest == PacketDestination.SOURCE_HANDLER:
@@ -369,6 +374,7 @@ class SourceEntityHandler(Thread):
         put_req_queue: Queue,
         source_entity_queue: Queue,
         tm_queue: Queue,
+        stop_signal: threading.Event,
     ):
         super().__init__()
         self.base_str = base_str
@@ -377,6 +383,7 @@ class SourceEntityHandler(Thread):
         self.put_req_queue = put_req_queue
         self.source_entity_queue = source_entity_queue
         self.tm_queue = tm_queue
+        self.stop_signal = stop_signal
 
     def _idle_handling(self) -> bool:
         try:
@@ -401,33 +408,40 @@ class SourceEntityHandler(Thread):
     def _busy_handling(self):
         # We are getting the packets from a Queue here, they could for example also be polled
         # from a network.
-        no_packet_received = True
+        packet_received = False
+        packet = None
         try:
             # We are getting the packets from a Queue here, they could for example also be polled
             # from a network.
-            packet: AbstractFileDirectiveBase = self.source_entity_queue.get(False)
-            try:
-                self.source_handler.insert_packet(packet)
-            except InvalidDestinationId as e:
-                _LOGGER.warning(
-                    f"invalid destination ID {e.found_dest_id} on packet {packet}, expected "
-                    f"{e.expected_dest_id}"
-                )
-            no_packet_received = False
+            packet = self.source_entity_queue.get(False)
+            packet_received = True
         except Empty:
-            no_packet_received = True
+            pass
         try:
-            no_packet_sent = self._call_source_state_machine()
+            packet_sent = self._call_source_state_machine(packet)
             # If there is no work to do, put the thread to sleep.
-            if no_packet_received and no_packet_sent:
+            if not packet_received and not packet_sent:
                 return False
         except SourceFileDoesNotExist:
             _LOGGER.warning("Source file does not exist")
             self.source_handler.reset()
 
-    def _call_source_state_machine(self) -> bool:
+    def _call_source_state_machine(
+        self, packet: Optional[AbstractFileDirectiveBase]
+    ) -> bool:
         """Returns whether a packet was sent."""
-        fsm_result = self.source_handler.state_machine()
+
+        if packet is not None:
+            _LOGGER.debug(f"{self.base_str}: Inserting {packet}")
+        try:
+            fsm_result = self.source_handler.state_machine(packet)
+        except InvalidDestinationId as e:
+            _LOGGER.warning(
+                f"invalid destination ID {e.found_dest_id} on packet {packet}, expected "
+                f"{e.expected_dest_id}"
+            )
+            fsm_result = self.source_handler.state_machine(None)
+        packet_sent = False
         if fsm_result.states.num_packets_ready > 0:
             while fsm_result.states.num_packets_ready > 0:
                 next_pdu_wrapper = self.source_handler.get_next_packet()
@@ -438,13 +452,14 @@ class SourceEntityHandler(Thread):
                     )
                 # Send all packets which need to be sent.
                 self.tm_queue.put(next_pdu_wrapper.pack())
-            return False
-        else:
-            return True
+                packet_sent = True
+        return packet_sent
 
     def run(self):
         _LOGGER.info(f"Starting {self.base_str}")
         while True:
+            if self.stop_signal.is_set():
+                break
             if self.source_handler.state == CfdpState.IDLE:
                 if not self._idle_handling():
                     time.sleep(0.2)
@@ -462,6 +477,7 @@ class DestEntityHandler(Thread):
         dest_handler: DestHandler,
         dest_entity_queue: Queue,
         tm_queue: Queue,
+        stop_signal: threading.Event,
     ):
         super().__init__()
         self.base_str = base_str
@@ -469,37 +485,38 @@ class DestEntityHandler(Thread):
         self.dest_handler = dest_handler
         self.dest_entity_queue = dest_entity_queue
         self.tm_queue = tm_queue
+        self.stop_signal = stop_signal
 
     def run(self):
         _LOGGER.info(
             f"Starting {self.base_str}. Local ID {self.dest_handler.cfg.local_entity_id}"
         )
-        first_packet = True
-        no_packet_received = False
         while True:
+            packet_received = False
+            packet = None
+            if self.stop_signal.is_set():
+                break
             try:
-                packet: GenericPduPacket = self.dest_entity_queue.get(False)
-                self.dest_handler.insert_packet(packet)
-                no_packet_received = False
-                if first_packet:
-                    first_packet = False
+                packet = self.dest_entity_queue.get(False)
+                packet_received = True
             except Empty:
-                no_packet_received = True
-            fsm_result = self.dest_handler.state_machine()
+                pass
+            if packet is not None:
+                _LOGGER.debug(f"{self.base_str}: Inserting {packet}")
+            fsm_result = self.dest_handler.state_machine(packet)
+            packet_sent = False
             if fsm_result.states.num_packets_ready > 0:
-                no_packet_sent = False
                 while fsm_result.states.num_packets_ready > 0:
                     next_pdu_wrapper = self.dest_handler.get_next_packet()
                     assert next_pdu_wrapper is not None
                     if self.verbose_level >= 1:
                         _LOGGER.debug(
-                            f"REMOTE DEST ENTITY: Sending packet {next_pdu_wrapper.pdu}"
+                            f"{self.base_str}: Sending packet {next_pdu_wrapper.pdu}"
                         )
                     self.tm_queue.put(next_pdu_wrapper.pack())
-            else:
-                no_packet_sent = True
+                    packet_sent = True
             # If there is no work to do, put the thread to sleep.
-            if no_packet_received and no_packet_sent:
+            if not packet_received and not packet_sent:
                 time.sleep(0.5)
 
 

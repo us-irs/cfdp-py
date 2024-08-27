@@ -52,8 +52,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         transaction_id, first_metadata_pdu, eof_pdu = self._common_empty_file_test(None)
         # Generate appropriate NAK PDU and insert it.
         nak_missing_metadata = NakPdu(eof_pdu.pdu_header.pdu_conf, 0, 0, [(0, 0)])
-        self.source_handler.insert_packet(nak_missing_metadata)
-        self.source_handler.state_machine()
+        self.source_handler.state_machine(nak_missing_metadata)
         self._state_checker(
             None,
             True,
@@ -66,7 +65,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         self.assertEqual(next_pdu.pdu_directive_type, DirectiveType.METADATA_PDU)
         metadata_pdu = next_pdu.to_metadata_pdu()
         self.assertEqual(metadata_pdu, first_metadata_pdu)
-        self.source_handler.state_machine()
+        self.source_handler.state_machine_no_packet()
         self._generic_acked_transfer_completion_full_success(transaction_id, eof_pdu)
 
     def test_missing_filedata_pdu_retransmission(self):
@@ -79,8 +78,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         nak_missing_metadata = NakPdu(
             eof_pdu.pdu_header.pdu_conf, 0, end_of_scope, [(0, end_of_scope)]
         )
-        self.source_handler.insert_packet(nak_missing_metadata)
-        self.source_handler.state_machine()
+        self.source_handler.state_machine(nak_missing_metadata)
         self._state_checker(
             None,
             1,
@@ -92,7 +90,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         self.assertEqual(next_pdu.pdu_type, PduType.FILE_DATA)
         fd_pdu = next_pdu.to_file_data_pdu()
         self.assertEqual(fd_pdu, first_fd_pdu)
-        self.source_handler.state_machine()
+        self.source_handler.state_machine_no_packet()
         self._generic_acked_transfer_completion_full_success(transaction_id, eof_pdu)
 
     def test_positive_ack_procedure(self):
@@ -112,7 +110,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         time.sleep(self.positive_ack_intvl_seconds * 1.2)
         self._verify_eof_pdu_for_positive_ack(initial_eof_pdu, 1)
         time.sleep(self.positive_ack_intvl_seconds * 1.2)
-        self.source_handler.state_machine()
+        self.source_handler.state_machine_no_packet()
         # That's odd but expected. The ACK limit reached fault will trigger a notice
         # of cancellation by default, which causes it to send an EOF PDU with the appropriate
         # condition code. There is little chance that this PDU will arrive after all the
@@ -209,8 +207,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
             end_of_scope=len(rand_data),
             segment_requests=[(0, len(rand_data))],
         )
-        self.source_handler.insert_packet(all_missing_filedata)
-        fsm_res = self.source_handler.state_machine()
+        fsm_res = self.source_handler.state_machine(all_missing_filedata)
         self._state_checker(fsm_res, 3, CfdpState.BUSY, TransactionStep.RETRANSMITTING)
         # All file data PDUs should be re-sent now.
         for i in range(3):
@@ -274,8 +271,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
                 condition_code=ConditionCode.NO_ERROR,
             ),
         )
-        self.source_handler.insert_packet(finished_pdu)
-        self.source_handler.state_machine()
+        self.source_handler.state_machine(finished_pdu)
         self._state_checker(
             None,
             True,
@@ -321,8 +317,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
             TransactionStatus.ACTIVE,
         )
         self.assertEqual(ack_pdu.direction, Direction.TOWARDS_SENDER)
-        self.source_handler.insert_packet(ack_pdu)
-        self.source_handler.state_machine()
+        self.source_handler.state_machine(ack_pdu)
         self._state_checker(
             None,
             False,

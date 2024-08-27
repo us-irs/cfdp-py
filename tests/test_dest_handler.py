@@ -192,8 +192,7 @@ class TestDestHandlerBase(TestCase):
         self._state_checker(
             None, expected_init_packets, expected_init_state, expected_init_step
         )
-        self.dest_handler.insert_packet(file_transfer_init)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(file_transfer_init)
         return fsm_res
 
     def _insert_file_segment(
@@ -206,8 +205,7 @@ class TestDestHandlerBase(TestCase):
     ) -> FsmResult:
         fd_params = FileDataParams(file_data=segment, offset=offset)
         file_data_pdu = FileDataPdu(params=fd_params, pdu_conf=self.src_pdu_conf)
-        self.dest_handler.insert_packet(file_data_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(file_data_pdu)
         if (
             self.indication_cfg.file_segment_recvd_indication_required
             and check_indication
@@ -232,8 +230,7 @@ class TestDestHandlerBase(TestCase):
         eof_pdu = EofPdu(
             file_size=file_size, file_checksum=checksum, pdu_conf=self.src_pdu_conf
         )
-        self.dest_handler.insert_packet(eof_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(eof_pdu)
         if self.expected_mode == TransmissionMode.UNACKNOWLEDGED:
             if self.closure_requested:
                 self._state_checker(

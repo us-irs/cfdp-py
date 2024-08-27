@@ -14,7 +14,6 @@ from cfdppy import (
 )
 from cfdppy.defs import CfdpState
 from cfdppy.exceptions import (
-    FsmNotCalledAfterPacketInsertion,
     InvalidDestinationId,
     InvalidNakPdu,
     InvalidPduDirection,
@@ -214,25 +213,23 @@ class SourceHandler:
 
     The following core functions are the primary interface:
 
-     1. :py:meth:`put_request` : Can be used to start transactions, most notably to start
+     1. :py:meth:`put_request`: Can be used to start transactions, most notably to start
         and perform a Copy File procedure to send a file or to send a Proxy Put Request to request
         a file.
-     2. :py:meth:`insert_packet` : Can be used to insert packets into the source
-        handler. Please note that the source handler can also process Finished, Keep Alive and
-        NAK PDUs in addition to ACK PDUs where the acknowledged PDU is the EOF PDU.
-     3. :py:meth:`state_machine` : This state machine generates the necessary CFDP PDUs necessary
-        to perform a CFDP file transfer. The PDUs are returned in a special wrapper result type.
-     4. :py:meth:`get_next_packet` : Retrieve the next packet which should be sent to the remote
-        entity of a file copy operation. This function might also yield multiple packets on
-        subsequent calls.
+     2. :py:meth:`state_machine`: This state machine is the primary interface to execute an
+        active file transfer. It generates the necessary CFDP PDUs for this process.
+        This method is also used to insert received packets with the appropriate destination ID
+        and target handler type into the state machine.
+     3. :py:meth:`get_next_packet`: Retrieve the next packet which should be sent to the remote
+        destination entity of a file copy operation.
 
     A put request will only be accepted if the handler is in the idle state. Furthermore,
     packet insertion is not allowed until all packets to send were retrieved after a state machine
     call.
 
     This handler also does not support concurrency out of the box. Instead, if concurrent handling
-    is required, it is recommended to create a new handler and run those inside a thread pool,
-    or move the newly created handler to a new thread."""
+    is required, it is recommended to create a new handler and run all active handlers inside a
+    thread pool, or move the newly created handler to a new thread."""
 
     def __init__(
         self,
@@ -250,7 +247,6 @@ class SourceHandler:
         self.check_timer_provider = check_timer_provider
         self._params = _TransferFieldWrapper(cfg.local_entity_id)
         self._put_req: Optional[PutRequest] = None
-        self._inserted_pdu = PduHolder(None)
         self._pdus_to_be_sent: Deque[PduHolder] = deque()
 
     @property
@@ -373,34 +369,8 @@ class SourceHandler:
             return True
         return False
 
-    def insert_packet(self, packet: AbstractFileDirectiveBase):
-        """Pass PDU file directives going towards the file sender to the CFDP source handler.
-        Please note that only one packet can be inserted into the source handler at a given time.
-        The packet is then handled by calling the :py:meth:`state_machine` and will be
-        cleared after the packet was successfully handled, allowing insertion of new packets.
-
-        Raises
-        -------
-        InvalidPduDirection
-            PDU direction field wrong.
-        FsmNotCalledAfterPacketInsertion
-            :py:meth:`state_machine` was not called after packet insertion.
-        InvalidPduForSourceHandler
-            Invalid PDU file directive type.
-        PduIgnoredForSource
-            The specified PDU can not be handled in the current state.
-        NoRemoteEntityCfgFound
-            No remote configuration found for specified destination entity.
-        InvalidSourceId
-            Source ID not identical to local entity ID.
-        InvalidDestinationId
-            Destination ID was found, but there is a mismatch between the packet destination ID
-            and the remote configuration entity ID.
-
-        """
-        if self._inserted_pdu.pdu is not None:
-            raise FsmNotCalledAfterPacketInsertion()
-        if packet.pdu_header.direction != Direction.TOWARDS_SENDER:
+    def _check_inserted_packet(self, packet: AbstractFileDirectiveBase):
+        if packet.direction != Direction.TOWARDS_SENDER:
             raise InvalidPduDirection(
                 Direction.TOWARDS_SENDER, packet.pdu_header.direction
             )
@@ -450,7 +420,6 @@ class SourceHandler:
                     reason=PduIgnoredForSourceReason.NOT_WAITING_FOR_FINISHED_PDU,
                     ignored_packet=packet,
                 )
-        self._inserted_pdu.pdu = packet
 
     def get_next_packet(self) -> Optional[PduHolder]:
         """Retrieve the next packet which should be sent to the remote CFDP destination entity."""
@@ -459,19 +428,36 @@ class SourceHandler:
         self.states._num_packets_ready -= 1
         return self._pdus_to_be_sent.popleft()
 
-    def state_machine(self) -> FsmResult:
-        """This is the primary state machine which performs the CFDP procedures like CRC calculation
-        and PDU generation. The packets generated by this finite-state machine (FSM) need to be
-        sent by the user and can be retrieved using the
-        :py:class:`spacepackets.cfdp.pdu.helper.PduHolder` class contained in the
-        returned :py:class:`tmtccmd.cfdp.handler.source.FsmResult`. After the packet was sent,
-        the calling code has to call :py:meth:`confirm_packet_sent` and :py:meth:`advance_fsm`
-        for the next state machine call do perform the next transaction step.
-        There is also the helper method :py:meth:`confirm_packet_sent_advance_fsm` available
-        to perform both steps.
+    def state_machine_no_packet(self) -> FsmResult:
+        """Helper method to call :py:meth:`state_machine` with None as the packet argument."""
+        return self.state_machine(None)
+
+    def state_machine(
+        self, packet: Optional[AbstractFileDirectiveBase] = None
+    ) -> FsmResult:
+        """This is the primary state machine which performs the CFDP procedures like  PDU
+        generation or CRC calculation. The packets generated by this finite-state machine (FSM)
+        need to be sent by the user and can be retrieved using the :py:meth:`get_next_packet`
+        method.
+
+        This method also allows inserting packets into the state machine via the optional packet
+        argument.
 
         Raises
         --------
+        InvalidPduDirection
+            PDU direction field wrong.
+        InvalidPduForSourceHandler
+            Invalid PDU file directive type.
+        PduIgnoredForSource
+            The specified PDU can not be handled in the current state.
+        NoRemoteEntityCfgFound
+            No remote configuration found for specified destination entity.
+        InvalidSourceId
+            Source ID not identical to local entity ID.
+        InvalidDestinationId
+            Destination ID was found, but there is a mismatch between the packet destination ID
+            and the remote configuration entity ID.
         UnretrievedPdusToBeSent
             There are still PDUs which need to be sent before calling the FSM again.
         ChecksumNotImplemented
@@ -480,9 +466,11 @@ class SourceHandler:
             The source file for which a transaction was requested does not exist. This can happen
             if the file is deleted during a transaction.
         """
+        if packet is not None:
+            self._check_inserted_packet(packet)
         if self.states.state == CfdpState.IDLE:
             return FsmResult(self.states)
-        self._fsm_non_idle()
+        self._fsm_non_idle(packet)
         return FsmResult(self.states)
 
     @property
@@ -498,8 +486,9 @@ class SourceHandler:
         self._pdus_to_be_sent.clear()
         self._params.reset()
 
-    def _fsm_non_idle(self):
+    def _fsm_non_idle(self, packet: Optional[AbstractFileDirectiveBase]):
         self._fsm_advancement_after_packets_were_sent()
+        packet_holder = PduHolder(packet)
         if self._put_req is None:
             return
         if self.states.step == TransactionStep.IDLE:
@@ -511,7 +500,7 @@ class SourceHandler:
             self._prepare_metadata_pdu()
             return
         if self.states.step == TransactionStep.SENDING_FILE_DATA:
-            if self._sending_file_data_fsm():
+            if self._sending_file_data_fsm(packet_holder):
                 return
         if self.states.step == TransactionStep.SENDING_EOF:
             self._prepare_eof_pdu(
@@ -519,9 +508,9 @@ class SourceHandler:
             )
             return
         if self.states.step == TransactionStep.WAITING_FOR_EOF_ACK:
-            self._handle_waiting_for_ack()
+            self._handle_waiting_for_ack(packet_holder)
         if self.states.step == TransactionStep.WAITING_FOR_FINISHED:
-            self._handle_wait_for_finish()
+            self._handle_wait_for_finish(packet_holder)
         if self.states.step == TransactionStep.NOTICE_OF_COMPLETION:
             self._notice_of_completion()
 
@@ -669,12 +658,12 @@ class SourceHandler:
             file_size=self._params.fp.file_size,
         )
 
-    def _sending_file_data_fsm(self) -> bool:
+    def _sending_file_data_fsm(self, packet_holder: PduHolder) -> bool:
         # This function returns whether the FSM should return or not.
         # During the PDU send phase, handle the re-transmission of missing files in
         # acknowledged mode.
         if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
-            if self.__handle_retransmission():
+            if self.__handle_retransmission(packet_holder):
                 return True
 
         # No need to send a file data PDU for an empty file
@@ -697,18 +686,17 @@ class SourceHandler:
                 self.states.step = TransactionStep.NOTICE_OF_COMPLETION
         return False
 
-    def __handle_retransmission(self) -> bool:
+    def __handle_retransmission(self, packet_holder: PduHolder) -> bool:
         """Returns whether a packet was generated and re-transmission is active."""
-        if self._inserted_pdu.pdu is None:
+        if packet_holder.pdu is None:
             return False
-        if self._inserted_pdu.pdu_directive_type != DirectiveType.NAK_PDU:
+        if packet_holder.pdu_directive_type != DirectiveType.NAK_PDU:
             return False
-        nak_pdu = self._inserted_pdu.to_nak_pdu()
+        nak_pdu = packet_holder.to_nak_pdu()
         for segment_req in nak_pdu.segment_requests:
             self._handle_segment_req(segment_req)
         self._params.ack_params.step_before_retransmission = self.states.step
         self.states.step = TransactionStep.RETRANSMITTING
-        self._inserted_pdu.pdu = None
         return True
 
     def _handle_segment_req(self, segment_req: Tuple[int, int]):
@@ -730,21 +718,21 @@ class SourceHandler:
                 current_offset += chunk_size
                 missing_chunk_len -= chunk_size
 
-    def _handle_waiting_for_ack(self):
+    def _handle_waiting_for_ack(self, packet_holder: PduHolder):
         if self.transmission_mode == TransmissionMode.UNACKNOWLEDGED:
             _LOGGER.error(
                 f"invalid ACK waiting function call for transmission mode "
                 f"{self.transmission_mode!r}"
             )
-        if self.__handle_retransmission():
+        if self.__handle_retransmission(packet_holder):
             return
-        if self._inserted_pdu.pdu is None or (
-            self._inserted_pdu.pdu_type == PduType.FILE_DIRECTIVE
-            and self._inserted_pdu.pdu_directive_type != DirectiveType.ACK_PDU
+        if packet_holder.pdu is None or (
+            packet_holder.pdu_type == PduType.FILE_DIRECTIVE
+            and packet_holder.pdu_directive_type != DirectiveType.ACK_PDU
         ):
             self._handle_positive_ack_procedures()
             return
-        ack_pdu = self._inserted_pdu.to_ack_pdu()
+        ack_pdu = packet_holder.to_ack_pdu()
         if ack_pdu.directive_code_of_acked_pdu == DirectiveType.EOF_PDU:
             # TODO: Equality check required? I am not sure why the condition code is supplied
             #       as part of the ACK packet.
@@ -754,8 +742,6 @@ class SourceHandler:
                 f"received ACK PDU with invalid acked directive code"
                 f" {ack_pdu.directive_code_of_acked_pdu!r}"
             )
-
-        self._inserted_pdu.pdu = None
 
     def _handle_positive_ack_procedures(self):
         """Positive ACK procedures according to chapter 4.7.1 of the CFDP standard."""
@@ -774,23 +760,22 @@ class SourceHandler:
                 self._checksum_calculation(self._params.fp.file_size),
             )
 
-    def _handle_wait_for_finish(self):
+    def _handle_wait_for_finish(self, packet_holder: PduHolder):
         if (
             self.transmission_mode == TransmissionMode.ACKNOWLEDGED
-            and self.__handle_retransmission()
+            and self.__handle_retransmission(packet_holder)
         ):
             return
         if (
-            self._inserted_pdu.pdu is None
-            or self._inserted_pdu.pdu_directive_type is None
-            or self._inserted_pdu.pdu_directive_type != DirectiveType.FINISHED_PDU
+            packet_holder.pdu is None
+            or packet_holder.pdu_directive_type is None
+            or packet_holder.pdu_directive_type != DirectiveType.FINISHED_PDU
         ):
             if self._params.check_timer is not None:
                 if self._params.check_timer.timed_out():
                     self._declare_fault(ConditionCode.CHECK_LIMIT_REACHED)
             return
-        finished_pdu = self._inserted_pdu.to_finished_pdu()
-        self._inserted_pdu.pdu = None
+        finished_pdu = packet_holder.to_finished_pdu()
         self._params.finished_params = finished_pdu.finished_params
         if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             self._prepare_finished_ack_packet(finished_pdu.condition_code)
@@ -1010,6 +995,6 @@ class SourceHandler:
         return self.user.vfs.calculate_checksum(
             checksum_type=self._params.remote_cfg.crc_type,
             file_path=self._put_req.source_file,
-            file_sz=size_to_calculate,
+            size_to_verify=size_to_calculate,
             segment_len=self._params.fp.segment_len,
         )

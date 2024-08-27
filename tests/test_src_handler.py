@@ -133,7 +133,7 @@ class TestCfdpSourceHandler(TestCase):
         expected_checksum: bytes,
         expected_file_size: int,
     ) -> EofPdu:
-        fsm_res = self.source_handler.state_machine()
+        fsm_res = self.source_handler.state_machine_no_packet()
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.SENDING_EOF)
         self.assertEqual(self.source_handler.transaction_seq_num, id.seq_num)
         next_packet = self.source_handler.get_next_packet()
@@ -190,9 +190,9 @@ class TestCfdpSourceHandler(TestCase):
         self.assertEqual(
             self.source_handler.transaction_seq_num.value, self.expected_seq_num
         )
-        fsm_res = self.source_handler.state_machine()
+        fsm_res = self.source_handler.state_machine_no_packet()
         with self.assertRaises(UnretrievedPdusToBeSent):
-            self.source_handler.state_machine()
+            self.source_handler.state_machine_no_packet()
         next_packet = self.source_handler.get_next_packet()
         assert next_packet is not None
         file_data_pdu = self._check_fsm_and_contained_file_data(fsm_res, next_packet)
