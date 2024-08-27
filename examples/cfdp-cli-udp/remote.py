@@ -105,9 +105,11 @@ def main():
         dest_entity_rx_queue=DEST_ENTITY_QUEUE,
     )
 
+    # TODO: Graceful shutdown.
     source_entity_task.start()
     dest_entity_task.start()
     udp_server.start()
+
     source_entity_task.join()
     dest_entity_task.join()
     udp_server.join()
