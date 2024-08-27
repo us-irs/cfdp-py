@@ -71,8 +71,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             pdu_conf=self.src_pdu_conf,
             condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
         )
-        self.dest_handler.insert_packet(eof_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(eof_pdu)
         # Should contain an ACK PDU now.
         self._generic_verify_eof_ack_packet(
             fsm_res, condition_code_of_acked_pdu=ConditionCode.CANCEL_REQUEST_RECEIVED
@@ -463,8 +462,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
     def test_metadata_only_transfer(self):
         options = self._generate_put_response_opts()
         metadata_pdu = self._generate_metadata_only_metadata(options)
-        self.dest_handler.insert_packet(metadata_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(metadata_pdu)
         # Done immediately. The only thing we need to do is check the two user indications.
         self.cfdp_user.metadata_recv_indication.assert_called_once()
         self.cfdp_user.metadata_recv_indication.assert_called_with(
@@ -565,6 +563,5 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             finished_pdu.condition_code,
             TransactionStatus.ACTIVE,
         )
-        self.dest_handler.insert_packet(ack_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(ack_pdu)
         self._state_checker(fsm_res, 0, CfdpState.IDLE, TransactionStep.IDLE)

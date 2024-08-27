@@ -15,9 +15,12 @@ from pathlib import Path
 from queue import Empty
 from typing import Any
 
-from spacepackets.cfdp import GenericPduPacket, TransactionId
-from spacepackets.cfdp.defs import ChecksumType, ConditionCode, TransmissionMode
-from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
+from spacepackets.cfdp import (
+    TransactionId,
+    ChecksumType,
+    ConditionCode,
+    TransmissionMode,
+)
 from spacepackets.util import ByteFieldU16, UnsignedByteField
 
 from cfdppy import CfdpState
@@ -216,10 +219,10 @@ def main():
         transmission_mode = TransmissionMode.ACKNOWLEDGED
     else:
         transmission_mode = None
-    if args.verbose == 0:
-        logging_level = logging.INFO
-    elif args.verbose >= 1:
+    logging_level = logging.INFO
+    if args.verbose >= 1:
         logging_level = logging.DEBUG
+    assert transmission_mode is not None
     transfer_params = TransferParams(transmission_mode, args.verbose, args.no_closure)
     basicConfig(level=logging_level)
 
@@ -311,23 +314,23 @@ def source_entity_handler(
         trans_mode=transfer_params.transmission_mode,
         closure_requested=not transfer_params.no_closure,
     )
-    no_packet_received = False
+    packet_received = False
     print(f"SRC HANDLER: Inserting Put Request: {put_request}")
     with open(SOURCE_FILE) as file:
         file_content = file.read()
         print(f"File content of source file {SOURCE_FILE}: {file_content}")
     assert source_handler.put_request(put_request)
+    packet = None
     while True:
         try:
             # We are getting the packets from a Queue here, they could for example also be polled
             # from a network.
-            packet: AbstractFileDirectiveBase = DEST_TO_SOURCE_QUEUE.get(False)
-            source_handler.insert_packet(packet)
-            no_packet_received = False
+            packet = DEST_TO_SOURCE_QUEUE.get(False)
+            packet_received = True
         except Empty:
-            no_packet_received = True
-        fsm_result = source_handler.state_machine()
-        no_packet_sent = False
+            pass
+        fsm_result = source_handler.state_machine(packet)
+        packet_sent = False
         if fsm_result.states.num_packets_ready > 0:
             while fsm_result.states.num_packets_ready > 0:
                 next_pdu_wrapper = source_handler.get_next_packet()
@@ -336,11 +339,9 @@ def source_entity_handler(
                     _LOGGER.debug(f"SRC Handler: Sending packet {next_pdu_wrapper.pdu}")
                 # Send all packets which need to be sent.
                 SOURCE_TO_DEST_QUEUE.put(next_pdu_wrapper.pdu)
-            no_packet_sent = False
-        else:
-            no_packet_sent = True
+                packet_sent = True
         # If there is no work to do, put the thread to sleep.
-        if no_packet_received and no_packet_sent:
+        if not packet_received and not packet_sent:
             time.sleep(0.5)
         # Transaction done
         if fsm_result.states.state == CfdpState.IDLE:
@@ -350,19 +351,19 @@ def source_entity_handler(
 
 def dest_entity_handler(transfer_params: TransferParams, dest_handler: DestHandler):
     first_packet = True
-    no_packet_received = False
+    packet_received = False
+    packet = None
     while True:
         try:
-            packet: GenericPduPacket = SOURCE_TO_DEST_QUEUE.get(False)
-            dest_handler.insert_packet(packet)
-            no_packet_received = False
+            packet = SOURCE_TO_DEST_QUEUE.get(False)
+            packet_received = True
             if first_packet:
                 first_packet = False
         except Empty:
-            no_packet_received = True
-        fsm_result = dest_handler.state_machine()
+            pass
+        fsm_result = dest_handler.state_machine(packet)
+        packet_sent = False
         if fsm_result.states.num_packets_ready > 0:
-            no_packet_sent = False
             while fsm_result.states.num_packets_ready > 0:
                 next_pdu_wrapper = dest_handler.get_next_packet()
                 assert next_pdu_wrapper is not None
@@ -371,10 +372,9 @@ def dest_entity_handler(transfer_params: TransferParams, dest_handler: DestHandl
                         f"DEST Handler: Sending packet {next_pdu_wrapper.pdu}"
                     )
                 DEST_TO_SOURCE_QUEUE.put(next_pdu_wrapper.pdu)
-        else:
-            no_packet_sent = True
+                packet_sent = True
         # If there is no work to do, put the thread to sleep.
-        if no_packet_received and no_packet_sent:
+        if not packet_received and not packet_sent:
             time.sleep(0.5)
         # Transaction done
         if not first_packet and fsm_result.states.state == CfdpState.IDLE:

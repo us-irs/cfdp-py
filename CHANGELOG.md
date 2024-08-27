@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+# [v0.3.0]
+
+## Changed
+
+- Simplified state machine usage: Packets are now inserted using an optional `packet` argument
+  of the `state_machine` call.
+
+## Removed
+
+- `insert_packet` API of the source and destination handler. Packet insertion is now performed
+  using the `state_machine` call.
+
 # [v0.2.0] 2024-08-27
 
 ## Fixed

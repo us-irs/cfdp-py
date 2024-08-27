@@ -127,7 +127,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         )
         self._state_checker(None, False, CfdpState.IDLE, TransactionStep.IDLE)
         with self.assertRaises(NoRemoteEntityCfgFound):
-            self.dest_handler.insert_packet(file_transfer_init)
+            self.dest_handler.state_machine(file_transfer_init)
 
     def test_check_timer_mechanism(self):
         file_data = "Hello World\n".encode()
@@ -137,8 +137,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             offset=0,
         )
         file_data_pdu = FileDataPdu(params=fd_params, pdu_conf=self.src_pdu_conf)
-        self.dest_handler.insert_packet(file_data_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(file_data_pdu)
         self._state_checker(
             fsm_res,
             False,
@@ -171,8 +170,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             pdu_conf=self.src_pdu_conf,
             condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
         )
-        self.dest_handler.insert_packet(eof_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(eof_pdu)
         self._generic_eof_recv_indication_check(fsm_res)
         if self.closure_requested:
             self._generic_no_error_finished_pdu_check(fsm_res)
@@ -257,8 +255,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             file_checksum=file_info.crc32,
             pdu_conf=self.src_pdu_conf,
         )
-        self.dest_handler.insert_packet(eof_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(eof_pdu)
         self.cfdp_user.transaction_finished_indication.assert_called_once()
         finished_args = cast(
             TransactionFinishedParams,
@@ -278,8 +275,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
     def test_metadata_only_transfer(self):
         options = self._generate_put_response_opts()
         metadata_pdu = self._generate_metadata_only_metadata(options)
-        self.dest_handler.insert_packet(metadata_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(metadata_pdu)
         # Done immediately. The only thing we need to do is check the two user indications.
         self.cfdp_user.metadata_recv_indication.assert_called_once()
         self.cfdp_user.metadata_recv_indication.assert_called_with(
@@ -354,8 +350,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             file_checksum=crc32,
             pdu_conf=self.src_pdu_conf,
         )
-        self.dest_handler.insert_packet(eof_pdu)
-        fsm_res = self.dest_handler.state_machine()
+        fsm_res = self.dest_handler.state_machine(eof_pdu)
         self._state_checker(
             fsm_res,
             False,

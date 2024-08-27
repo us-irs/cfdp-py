@@ -2,6 +2,8 @@
 """This component simulates the remote component."""
 import argparse
 import logging
+import time
+import threading
 from logging import basicConfig
 from multiprocessing import Queue
 
@@ -47,6 +49,7 @@ TM_QUEUE = Queue()
 def main():
     parser = argparse.ArgumentParser(prog="CFDP Remote Entity Application")
     parser.add_argument("-v", "--verbose", action="count", default=0)
+    stop_signal = threading.Event()
     args = parser.parse_args()
     logging_level = logging.INFO
     if args.verbose >= 1:
@@ -74,6 +77,7 @@ def main():
         PUT_REQ_QUEUE,
         SOURCE_ENTITY_QUEUE,
         TM_QUEUE,
+        stop_signal,
     )
 
     # Enable all indications.
@@ -91,6 +95,7 @@ def main():
         dest_handler,
         DEST_ENTITY_QUEUE,
         TM_QUEUE,
+        stop_signal,
     )
 
     # Address Any to accept CFDP packets from other address than localhost.
@@ -103,12 +108,18 @@ def main():
         tx_queue=TM_QUEUE,
         source_entity_rx_queue=SOURCE_ENTITY_QUEUE,
         dest_entity_rx_queue=DEST_ENTITY_QUEUE,
+        stop_signal=stop_signal,
     )
 
-    # TODO: Graceful shutdown.
     source_entity_task.start()
     dest_entity_task.start()
     udp_server.start()
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        stop_signal.set()
 
     source_entity_task.join()
     dest_entity_task.join()

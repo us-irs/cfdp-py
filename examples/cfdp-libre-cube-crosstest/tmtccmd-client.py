@@ -8,6 +8,7 @@ import select
 import socket
 import threading
 import time
+from typing import cast
 from dataclasses import dataclass
 from datetime import timedelta
 from logging import basicConfig
@@ -34,6 +35,7 @@ from cfdppy.user import (
     TransactionFinishedParams,
     TransactionParams,
 )
+from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
 from common import REMOTE_CFG_FOR_DEST_ENTITY, UDP_SERVER_PORT, UDP_TM_SERVER_PORT
 from common import REMOTE_ENTITY_ID as REMOTE_ENTITY_ID_RAW
 from common import SOURCE_ENTITY_ID as SOURCE_ENTITY_ID_RAW
@@ -279,28 +281,27 @@ def source_entity_handler(
         trans_mode=transfer_params.transmission_mode,
         closure_requested=not transfer_params.no_closure,
     )
-    no_packet_received = False
+    packet_received = False
     print(f"SRC HANDLER: Inserting Put Request: {put_request}")
     with open(SOURCE_FILE) as file:
         file_content = file.read()
         print(f"File content of source file {SOURCE_FILE}: {file_content}")
     source_handler.put_request(put_request)
+    packet = None
     while True:
         try:
             ready = select.select([tm_client], [], [], 0)
             if ready[0]:
                 data, _ = tm_client.recvfrom(4096)
-                packet = PduFactory.from_raw(data)
-                try:
-                    source_handler.insert_packet(packet)
-                except InvalidSourceId:
-                    _LOGGER.warning(f"invalid source ID in packet {packet}")
-                no_packet_received = False
-            else:
-                no_packet_received = True
+                packet = cast(AbstractFileDirectiveBase, PduFactory.from_raw(data))
+                packet_received = True
         except Empty:
-            no_packet_received = True
-        fsm_result = source_handler.state_machine()
+            pass
+        try:
+            fsm_result = source_handler.state_machine(packet)
+        except InvalidSourceId:
+            _LOGGER.warning(f"invalid source ID in packet {packet}")
+            fsm_result = source_handler.state_machine()
         no_packet_sent = False
         if fsm_result.states.num_packets_ready > 0:
             while fsm_result.states.num_packets_ready > 0:
@@ -308,6 +309,7 @@ def source_entity_handler(
                 assert next_pdu_wrapper is not None
                 if transfer_params.verbose_level >= 1:
                     _LOGGER.debug(f"SRC Handler: Sending packet {next_pdu_wrapper.pdu}")
+                assert next_pdu_wrapper.pdu is not None
                 # Send all packets which need to be sent.
                 tc_client.sendto(
                     next_pdu_wrapper.pdu.pack(), ("127.0.0.1", UDP_SERVER_PORT)
@@ -316,7 +318,7 @@ def source_entity_handler(
         else:
             no_packet_sent = True
         # If there is no work to do, put the thread to sleep.
-        if no_packet_received and no_packet_sent:
+        if packet_received and no_packet_sent:
             time.sleep(0.5)
         # Transaction done
         if fsm_result.states.state == CfdpState.IDLE:
