@@ -207,20 +207,19 @@ class SourceHandler:
     As such, it contains a state machine to perform all operations necessary to perform a
     source-to-destination file transfer. This class does not send the CFDP PDU packets directly
     to allow for greater flexibility. For example, a user might want to wrap the CFDP packet
-    entities into a CCSDS space packet or into a special frame type. The user is responsible for
-    sending the packets and confirming that they are sent successfully. The handler can handle
+    entities into a CCSDS space packet or into a special frame type. The handler can handle
     both unacknowledged (class 1) and acknowledged (class 2) file tranfers.
 
     The following core functions are the primary interface:
 
-     1. :py:meth:`put_request`: Can be used to start transactions, most notably to start
+     1. :py:meth:`put_request` can be used to start transactions, most notably to start
         and perform a Copy File procedure to send a file or to send a Proxy Put Request to request
         a file.
-     2. :py:meth:`state_machine`: This state machine is the primary interface to execute an
+     2. :py:meth:`state_machine` is the primary interface to execute an
         active file transfer. It generates the necessary CFDP PDUs for this process.
         This method is also used to insert received packets with the appropriate destination ID
         and target handler type into the state machine.
-     3. :py:meth:`get_next_packet`: Retrieve the next packet which should be sent to the remote
+     3. :py:meth:`get_next_packet` retrieves the next packet which should be sent to the remote
         destination entity of a file copy operation.
 
     A put request will only be accepted if the handler is in the idle state. Furthermore,
@@ -293,7 +292,7 @@ class SourceHandler:
         return self.states.num_packets_ready
 
     def put_request(self, request: PutRequest):
-        """You can call this function to pass a put request to the source handler, which is
+        """This function is used to pass a put request to the source handler, which is
         also used to start a file copy operation. As such, this function models the Put.request
         CFDP primtiive.
 
