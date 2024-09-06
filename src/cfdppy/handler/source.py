@@ -482,7 +482,6 @@ class SourceHandler:
         """
         self.states.step = TransactionStep.IDLE
         self.states.state = CfdpState.IDLE
-        self._pdus_to_be_sent.clear()
         self._params.reset()
 
     def _fsm_non_idle(self, packet: Optional[AbstractFileDirectiveBase]):
@@ -758,7 +757,7 @@ class SourceHandler:
             self._prepare_eof_pdu(
                 self._checksum_calculation(self._params.fp.file_size),
             )
-            self._handle_eof_sent()
+            self._handle_eof_sent(False)
 
     def _handle_wait_for_finish(self, packet_holder: PduHolder):
         if (

@@ -56,6 +56,7 @@ class TestCfdpSourceHandler(TestCase):
         self, closure_requested: bool, default_transmission_mode: TransmissionMode
     ):
         self.setUpPyfakefs()
+        self.closure_requested = closure_requested
         self.indication_cfg = IndicationCfg(True, True, True, True, True, True)
         self.fault_handler = FaultHandler()
         self.fault_handler.notice_of_cancellation_cb = MagicMock()
@@ -133,9 +134,20 @@ class TestCfdpSourceHandler(TestCase):
         expected_checksum: bytes,
         expected_file_size: int,
     ) -> EofPdu:
-        fsm_res = self.source_handler.state_machine_no_packet()
-        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.SENDING_EOF)
         self.assertEqual(self.source_handler.transaction_seq_num, id.seq_num)
+        transmission_mode = self.source_handler.transmission_mode
+        fsm_res = self.source_handler.state_machine_no_packet()
+        if transmission_mode == TransmissionMode.UNACKNOWLEDGED:
+            if self.closure_requested:
+                self._state_checker(
+                    fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED
+                )
+            else:
+                self._state_checker(fsm_res, 1, CfdpState.IDLE, TransactionStep.IDLE)
+        else:
+            self._state_checker(
+                fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_EOF_ACK
+            )
         next_packet = self.source_handler.get_next_packet()
         self.assertIsNotNone(next_packet)
         assert next_packet is not None

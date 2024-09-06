@@ -249,7 +249,7 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
         self._test_transaction_completion()
 
     def _test_eof_file_pdu(self, fsm_res: FsmResult, file_size: int, crc32: bytes):
-        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.SENDING_EOF)
+        self._state_checker(fsm_res, 1, CfdpState.IDLE, TransactionStep.IDLE)
         next_packet = self.source_handler.get_next_packet()
         assert next_packet is not None
         self.assertEqual(next_packet.pdu_type, PduType.FILE_DIRECTIVE)
