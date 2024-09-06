@@ -155,7 +155,7 @@ class _TransferFieldWrapper:
         self.pdu_conf.source_entity_id = source_id
 
     @property
-    def positve_ack_counter(self) -> int:
+    def positive_ack_counter(self) -> int:
         return self.positive_ack_params.ack_counter
 
     @property
@@ -267,7 +267,7 @@ class SourceHandler:
 
     @property
     def positive_ack_counter(self) -> int:
-        return self._params.positve_ack_counter
+        return self._params.positive_ack_counter
 
     @property
     def transmission_mode(self) -> Optional[TransmissionMode]:
@@ -757,7 +757,6 @@ class SourceHandler:
             self._prepare_eof_pdu(
                 self._checksum_calculation(self._params.fp.file_size),
             )
-            self._handle_eof_sent(False)
 
     def _handle_wait_for_finish(self, packet_holder: PduHolder):
         if (
