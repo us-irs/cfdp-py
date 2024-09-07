@@ -47,7 +47,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         fsm_res = self._generic_insert_eof_pdu(0, NULL_CHECKSUM_U32)
         self._generic_eof_recv_indication_check(fsm_res)
         if self.closure_requested:
-            self._generic_no_error_finished_pdu_check(fsm_res)
+            self._generic_no_error_finished_pdu_check_and_done_check(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, bytes())
 
     def test_empty_file_reception(self):
@@ -71,7 +71,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         fsm_res = self._generic_insert_eof_pdu(file_size, crc32)
         self._generic_eof_recv_indication_check(fsm_res)
         if self.closure_requested:
-            self._generic_no_error_finished_pdu_check(fsm_res)
+            self._generic_no_error_finished_pdu_check_and_done_check(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, data)
 
     def test_small_file_reception_no_closure(self):
@@ -96,7 +96,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         fsm_res = self._generic_insert_eof_pdu(file_info.file_size, file_info.crc32)
         self._generic_eof_recv_indication_check(fsm_res)
         if self.closure_requested:
-            self._generic_no_error_finished_pdu_check(fsm_res)
+            self._generic_no_error_finished_pdu_check_and_done_check(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_info.rand_data)
 
     def test_larger_file_reception(self):
@@ -154,7 +154,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             TransactionStep.IDLE,
         )
 
-    def test_cancelled_transfer(self):
+    def test_cancelled_transfer_via_eof_pdu(self):
         data = "Hello World\n".encode()
         with open(self.src_file_path, "wb") as of:
             of.write(data)
@@ -172,6 +172,30 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         )
         fsm_res = self.dest_handler.state_machine(eof_pdu)
         self._generic_eof_recv_indication_check(fsm_res)
+        if self.closure_requested:
+            self._generic_no_error_finished_pdu_check(fsm_res)
+        self._generic_verify_transfer_completion(
+            fsm_res,
+            expected_file_data=None,
+            expected_finished_params=FinishedParams(
+                condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+                delivery_code=DeliveryCode.DATA_INCOMPLETE,
+                file_status=FileStatus.FILE_RETAINED,
+            ),
+        )
+
+    def test_cancelled_transfer_via_cancel_request(self):
+        data = "Hello World\n".encode()
+        with open(self.src_file_path, "wb") as of:
+            of.write(data)
+        file_size = self.src_file_path.stat().st_size
+        self._generic_regular_transfer_init(
+            file_size=file_size,
+        )
+        self._insert_file_segment(segment=data, offset=0)
+        # Cancel the transfer with the cancel API
+        self.dest_handler.cancel_request(self.transaction_id)
+        fsm_res = self.dest_handler.state_machine()
         if self.closure_requested:
             self._generic_no_error_finished_pdu_check(fsm_res)
         self._generic_verify_transfer_completion(

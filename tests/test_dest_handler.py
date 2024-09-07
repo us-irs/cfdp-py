@@ -236,8 +236,8 @@ class TestDestHandlerBase(TestCase):
                 self._state_checker(
                     fsm_res,
                     1,
-                    CfdpState.BUSY,
-                    TransactionStep.SENDING_FINISHED_PDU,
+                    CfdpState.IDLE,
+                    TransactionStep.IDLE,
                 )
             else:
                 self._state_checker(fsm_res, 0, CfdpState.IDLE, TransactionStep.IDLE)
@@ -250,17 +250,46 @@ class TestDestHandlerBase(TestCase):
         )
         self.assertEqual(fsm_res.states.transaction_id, self.transaction_id)
 
-    def _generic_no_error_finished_pdu_check(
+    def _generic_no_error_finished_pdu_check_and_done_check(
         self,
         fsm_res: FsmResult,
-        expected_step: TransactionStep = TransactionStep.SENDING_FINISHED_PDU,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
         expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
     ) -> FinishedPdu:
-        self._state_checker(fsm_res, 1, CfdpState.BUSY, expected_step)
+        return self._generic_no_error_finished_pdu_check(
+            fsm_res,
+            CfdpState.IDLE,
+            TransactionStep.IDLE,
+            expected_file_status,
+            expected_condition_code,
+        )
+
+    def _generic_no_error_finished_pdu_check_acked(
+        self,
+        fsm_res: FsmResult,
+        expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
+        expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
+    ) -> FinishedPdu:
+        return self._generic_no_error_finished_pdu_check(
+            fsm_res,
+            CfdpState.BUSY,
+            TransactionStep.WAITING_FOR_FINISHED_ACK,
+            expected_file_status,
+            expected_condition_code,
+        )
+
+    def _generic_no_error_finished_pdu_check(
+        self,
+        fsm_res: FsmResult,
+        expected_state: CfdpState,
+        expected_step: TransactionStep,
+        expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
+        expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
+    ) -> FinishedPdu:
+        self._state_checker(fsm_res, 1, expected_state, expected_step)
         self.assertTrue(fsm_res.states.packets_ready)
         next_pdu = self.dest_handler.get_next_packet()
-        assert next_pdu is not None
+        self.assertIsNotNone(next_pdu)
         self.assertEqual(next_pdu.pdu_type, PduType.FILE_DIRECTIVE)
         self.assertEqual(next_pdu.pdu_directive_type, DirectiveType.FINISHED_PDU)
 

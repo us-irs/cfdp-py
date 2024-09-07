@@ -477,6 +477,7 @@ class DestHandler:
             self._trigger_notice_of_completion_canceled(
                 ConditionCode.CANCEL_REQUEST_RECEIVED
             )
+            self.states.step = TransactionStep.TRANSFER_COMPLETION
             return True
         return False
 
@@ -485,7 +486,6 @@ class DestHandler:
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
         self._params = _DestFieldWrapper()
-        self._pdus_to_be_sent.clear()
         self.states.state = CfdpState.IDLE
         self.states.step = TransactionStep.IDLE
 
@@ -534,6 +534,7 @@ class DestHandler:
             self._handle_transfer_completion()
         if self.states.step == TransactionStep.SENDING_FINISHED_PDU:
             self._prepare_finished_pdu()
+            self._handle_finished_pdu_sent()
         if self.states.step == TransactionStep.WAITING_FOR_FINISHED_ACK:
             self._handle_waiting_for_finished_ack(pdu_holder)
 
@@ -543,15 +544,6 @@ class DestHandler:
             raise UnretrievedPdusToBeSent(
                 f"{len(self._pdus_to_be_sent)} packets left to send"
             )
-        if self.states.step == TransactionStep.SENDING_FINISHED_PDU:
-            if (
-                self.states.state == CfdpState.BUSY
-                and self.transmission_mode == TransmissionMode.ACKNOWLEDGED
-            ):
-                self._start_positive_ack_procedure()
-                self.states.step = TransactionStep.WAITING_FOR_FINISHED_ACK
-                return
-            self.reset()
         if self.states.step == TransactionStep.SENDING_EOF_ACK_PDU:
             if (
                 self._params.acked_params.lost_seg_tracker.num_lost_segments > 0
@@ -617,6 +609,16 @@ class DestHandler:
     def _start_transaction_missing_metadata_recv_fd(self, fd_pdu: FileDataPdu):
         self._common_first_packet_not_metadata_pdu_handler(fd_pdu)
         self._handle_fd_without_previous_metadata(True, fd_pdu)
+
+    def _handle_finished_pdu_sent(self):
+        if (
+            self.states.state == CfdpState.BUSY
+            and self.transmission_mode == TransmissionMode.ACKNOWLEDGED
+        ):
+            self._start_positive_ack_procedure()
+            self.states.step = TransactionStep.WAITING_FOR_FINISHED_ACK
+            return
+        self.reset()
 
     def _handle_fd_without_previous_metadata(
         self, first_pdu: bool, fd_pdu: FileDataPdu
