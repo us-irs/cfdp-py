@@ -226,9 +226,9 @@ class SourceHandler:
     packet insertion is not allowed until all packets to send were retrieved after a state machine
     call.
 
-    This handler also does not support concurrency out of the box. Instead, if concurrent handling
-    is required, it is recommended to create a new handler and run all active handlers inside a
-    thread pool, or move the newly created handler to a new thread."""
+    This handler also does not support concurrency out of the box but is flexible enough to be used
+    in different concurrent contexts. For example, you can dynamically create new handlers and
+    run them inside a thread pool, or move the newly created handler to a new thread."""
 
     def __init__(
         self,
