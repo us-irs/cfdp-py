@@ -481,13 +481,18 @@ class DestHandler:
             return True
         return False
 
+    def _reset_internal(self, clear_packet_queue: bool):
+        self._params = _DestFieldWrapper()
+        self.states.state = CfdpState.IDLE
+        self.states.step = TransactionStep.IDLE
+        if clear_packet_queue:
+            self._pdus_to_be_sent.clear()
+
     def reset(self):
         """This function is public to allow completely resetting the handler, but it is explicitely
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
-        self._params = _DestFieldWrapper()
-        self.states.state = CfdpState.IDLE
-        self.states.step = TransactionStep.IDLE
+        self._reset_internal(False)
 
     def __idle_fsm(self, packet: Optional[GenericPduPacket]):
         if packet is None:
@@ -618,7 +623,7 @@ class DestHandler:
             self._start_positive_ack_procedure()
             self.states.step = TransactionStep.WAITING_FOR_FINISHED_ACK
             return
-        self.reset()
+        self._reset_internal(False)
 
     def _handle_fd_without_previous_metadata(
         self, first_pdu: bool, fd_pdu: FileDataPdu
@@ -790,7 +795,7 @@ class DestHandler:
                     f" {ack_pdu.directive_code_of_acked_pdu}"
                 )
             # We are done.
-            self.reset()
+            self._reset_internal(False)
 
     def _handle_positive_ack_procedures(self):
         """Positive ACK procedures according to chapter 4.7.1 of the CFDP standard.
@@ -869,7 +874,7 @@ class DestHandler:
         ) or self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             self.states.step = TransactionStep.SENDING_FINISHED_PDU
         else:
-            self.reset()
+            self._reset_internal(False)
 
     def _lost_segment_handling(self, offset: int, data_len: int):
         """Lost segment detection: 4.6.4.3.1 a) and b) are covered by this code. c) is covered

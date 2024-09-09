@@ -476,13 +476,21 @@ class SourceHandler:
     def transaction_id(self) -> Optional[TransactionId]:
         return self._params.transaction_id
 
-    def reset(self):
+    def _reset_internal(self, clear_packet_queue: bool):
         """This function is public to allow completely resetting the handler, but it is explicitely
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
         self.states.step = TransactionStep.IDLE
         self.states.state = CfdpState.IDLE
+        if clear_packet_queue:
+            self._pdus_to_be_sent.clear()
         self._params.reset()
+
+    def reset(self):
+        """This function is public to allow completely resetting the handler, but it is explicitely
+        discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
+        """
+        self._reset_internal(True)
 
     def _fsm_non_idle(self, packet: Optional[AbstractFileDirectiveBase]):
         self._fsm_advancement_after_packets_were_sent()
@@ -797,7 +805,7 @@ class SourceHandler:
             )
             self.user.transaction_finished_indication(indication_params)
         # Transaction finished
-        self.reset()
+        self._reset_internal(False)
 
     def _fsm_advancement_after_packets_were_sent(self):
         """Advance the internal FSM after all packets to be sent were retrieved from the handler."""
@@ -820,7 +828,7 @@ class SourceHandler:
             self._start_positive_ack_procedure()
             return
         if cancel_eof:
-            self.reset()
+            self._reset_internal(False)
             return
         if self._params.closure_requested:
             assert self._params.remote_cfg is not None
