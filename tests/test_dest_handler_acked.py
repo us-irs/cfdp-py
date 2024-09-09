@@ -9,6 +9,7 @@ from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ConditionCode,
     DirectiveType,
+    EntityIdTlv,
     PduType,
     TransmissionMode,
 )
@@ -77,8 +78,10 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             fsm_res, condition_code_of_acked_pdu=ConditionCode.CANCEL_REQUEST_RECEIVED
         )
         fsm_res = self.dest_handler.state_machine()
-        finished_pdu = self._generic_no_error_finished_pdu_check_acked(
-            fsm_res, expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED
+        finished_pdu = self._generic_finished_pdu_check_acked(
+            fsm_res,
+            expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+            expected_fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
         )
         self._generic_verify_transfer_completion(
             fsm_res,
@@ -87,6 +90,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
                 condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
                 delivery_code=DeliveryCode.DATA_INCOMPLETE,
                 file_status=FileStatus.FILE_RETAINED,
+                fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
             ),
         )
         self._generic_insert_finished_pdu_ack(finished_pdu)

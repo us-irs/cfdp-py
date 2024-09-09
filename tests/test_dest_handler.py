@@ -29,6 +29,7 @@ from spacepackets.cfdp import (
     ConditionCode,
     Direction,
     DirectiveType,
+    EntityIdTlv,
     FinishedParams,
     PduConfig,
     PduType,
@@ -256,7 +257,7 @@ class TestDestHandlerBase(TestCase):
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
         expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
     ) -> FinishedPdu:
-        return self._generic_no_error_finished_pdu_check(
+        return self._generic_finished_pdu_check(
             fsm_res,
             CfdpState.IDLE,
             TransactionStep.IDLE,
@@ -264,18 +265,32 @@ class TestDestHandlerBase(TestCase):
             expected_condition_code,
         )
 
-    def _generic_no_error_finished_pdu_check_acked(
+    def _generic_finished_pdu_check_acked(
         self,
         fsm_res: FsmResult,
+        expected_condition_code: ConditionCode,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
-        expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
+        expected_fault_location: Optional[EntityIdTlv] = None,
     ) -> FinishedPdu:
-        return self._generic_no_error_finished_pdu_check(
+        return self._generic_finished_pdu_check(
             fsm_res,
             CfdpState.BUSY,
             TransactionStep.WAITING_FOR_FINISHED_ACK,
             expected_file_status,
             expected_condition_code,
+            expected_fault_location=expected_fault_location,
+        )
+
+    def _generic_no_error_finished_pdu_check_acked(
+        self,
+        fsm_res: FsmResult,
+        expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
+    ) -> FinishedPdu:
+        return self._generic_finished_pdu_check(
+            fsm_res,
+            CfdpState.BUSY,
+            TransactionStep.WAITING_FOR_FINISHED_ACK,
+            expected_file_status,
         )
 
     def _generic_no_error_finished_pdu_check(
@@ -284,7 +299,22 @@ class TestDestHandlerBase(TestCase):
         expected_state: CfdpState,
         expected_step: TransactionStep,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
+    ) -> FinishedPdu:
+        return self._generic_finished_pdu_check(
+            fsm_res,
+            expected_state,
+            expected_step,
+            expected_file_status,
+        )
+
+    def _generic_finished_pdu_check(
+        self,
+        fsm_res: FsmResult,
+        expected_state: CfdpState,
+        expected_step: TransactionStep,
+        expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
         expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
+        expected_fault_location: Optional[EntityIdTlv] = None,
     ) -> FinishedPdu:
         self._state_checker(fsm_res, 1, expected_state, expected_step)
         self.assertTrue(fsm_res.states.packets_ready)
@@ -301,7 +331,7 @@ class TestDestHandlerBase(TestCase):
         else:
             self.assertEqual(finished_pdu.delivery_code, DeliveryCode.DATA_INCOMPLETE)
         self.assertEqual(finished_pdu.direction, Direction.TOWARDS_SENDER)
-        self.assertIsNone(finished_pdu.fault_location)
+        self.assertEqual(finished_pdu.fault_location, expected_fault_location)
         self.assertEqual(len(finished_pdu.file_store_responses), 0)
         return finished_pdu
 

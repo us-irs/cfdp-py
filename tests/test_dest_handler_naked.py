@@ -22,6 +22,7 @@ from spacepackets.cfdp import (
     ChecksumType,
     ConditionCode,
     DeliveryCode,
+    EntityIdTlv,
     FileStatus,
     TransmissionMode,
 )
@@ -173,7 +174,13 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         fsm_res = self.dest_handler.state_machine(eof_pdu)
         self._generic_eof_recv_indication_check(fsm_res)
         if self.closure_requested:
-            self._generic_no_error_finished_pdu_check(fsm_res)
+            self._generic_finished_pdu_check(
+                fsm_res,
+                expected_state=CfdpState.IDLE,
+                expected_step=TransactionStep.IDLE,
+                expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+                expected_fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
+            )
         self._generic_verify_transfer_completion(
             fsm_res,
             expected_file_data=None,
@@ -181,6 +188,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
                 condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
                 delivery_code=DeliveryCode.DATA_INCOMPLETE,
                 file_status=FileStatus.FILE_RETAINED,
+                fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
             ),
         )
 
@@ -197,7 +205,13 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         self.dest_handler.cancel_request(self.transaction_id)
         fsm_res = self.dest_handler.state_machine()
         if self.closure_requested:
-            self._generic_no_error_finished_pdu_check(fsm_res)
+            self._generic_finished_pdu_check(
+                fsm_res,
+                expected_state=CfdpState.IDLE,
+                expected_step=TransactionStep.IDLE,
+                expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+                expected_fault_location=EntityIdTlv(self.entity_id.as_bytes),
+            )
         self._generic_verify_transfer_completion(
             fsm_res,
             expected_file_data=None,
@@ -205,6 +219,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
                 condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
                 delivery_code=DeliveryCode.DATA_INCOMPLETE,
                 file_status=FileStatus.FILE_RETAINED,
+                fault_location=EntityIdTlv(self.entity_id.as_bytes),
             ),
         )
 

@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - `insert_packet` API of the source and destination handler. Packet insertion is now performed
   using the `state_machine` call.
 
+## Fixed
+
+- Fault location field of the Finished PDU is now set correctly for transfer cancellations.
+
 # [v0.2.0] 2024-08-27
 
 ## Fixed

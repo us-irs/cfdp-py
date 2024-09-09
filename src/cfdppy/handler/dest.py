@@ -42,6 +42,7 @@ from spacepackets.cfdp import (
     ChecksumType,
     ConditionCode,
     Direction,
+    EntityIdTlv,
     FaultHandlerCode,
     PduConfig,
     PduType,
@@ -472,7 +473,8 @@ class DestHandler:
             and transaction_id == self._params.transaction_id
         ):
             self._trigger_notice_of_completion_canceled(
-                ConditionCode.CANCEL_REQUEST_RECEIVED
+                ConditionCode.CANCEL_REQUEST_RECEIVED,
+                EntityIdTlv(self.cfg.local_entity_id.as_bytes),
             )
             self.states.step = TransactionStep.TRANSFER_COMPLETION
             return True
@@ -980,8 +982,11 @@ class DestHandler:
                 return
         else:
             # This is an EOF (Cancel), perform Cancel Response Procedures according to chapter
-            # 4.6.6 of the standard.
-            self._trigger_notice_of_completion_canceled(eof_pdu.condition_code)
+            # 4.6.6 of the standard. Set remote ID as fault location.
+            self._trigger_notice_of_completion_canceled(
+                eof_pdu.condition_code,
+                EntityIdTlv(self._params.remote_cfg.entity_id.as_bytes),
+            )
             # Store this as progress for the checksum calculation.
             self._params.fp.progress = self._params.fp.file_size_eof
             self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
@@ -1074,9 +1079,12 @@ class DestHandler:
             self._prepare_eof_ack_packet()
             self.states.step = TransactionStep.SENDING_EOF_ACK_PDU
 
-    def _trigger_notice_of_completion_canceled(self, condition_code: ConditionCode):
+    def _trigger_notice_of_completion_canceled(
+        self, condition_code: ConditionCode, fault_location: EntityIdTlv
+    ):
         self._params.completion_disposition = CompletionDisposition.CANCELED
         self._params.finished_params.condition_code = condition_code
+        self._params.finished_params.fault_location = fault_location
 
     def _start_check_limit_handling(self):
         self.states.step = TransactionStep.RECV_FILE_DATA_WITH_CHECK_LIMIT_HANDLING
@@ -1114,6 +1122,9 @@ class DestHandler:
     def _prepare_finished_pdu(self):
         if self.states.packets_ready:
             raise UnretrievedPdusToBeSent()
+        # TODO: Fault location handling. Set remote entity ID for file copy
+        # operations cancelled with an EOF (Cancel) PDU, and the local ID for file
+        # copy operations cancelled with the local API.
         finished_pdu = FinishedPdu(
             params=self._params.finished_params,
             # The configuration was cached when the first metadata arrived
