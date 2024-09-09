@@ -42,6 +42,7 @@ from spacepackets.cfdp import (
     ChecksumType,
     ConditionCode,
     Direction,
+    EntityIdTlv,
     FaultHandlerCode,
     PduConfig,
     PduType,
@@ -78,7 +79,6 @@ class CompletionDisposition(enum.Enum):
 class _DestFileParams(_FileParamsBase):
     file_name: Path
     file_size_eof: Optional[int]
-    condition_code_eof: Optional[ConditionCode]
 
     @classmethod
     def empty(cls) -> _DestFileParams:
@@ -90,14 +90,12 @@ class _DestFileParams(_FileParamsBase):
             file_name=Path(),
             file_size_eof=None,
             metadata_only=False,
-            condition_code_eof=None,
         )
 
     def reset(self):
         super().reset()
         self.file_name = Path()
         self.file_size_eof = None
-        self.condition_code_eof = None
 
 
 class TransactionStep(enum.Enum):
@@ -480,19 +478,25 @@ class DestHandler:
             and transaction_id == self._params.transaction_id
         ):
             self._trigger_notice_of_completion_canceled(
-                ConditionCode.CANCEL_REQUEST_RECEIVED
+                ConditionCode.CANCEL_REQUEST_RECEIVED,
+                EntityIdTlv(self.cfg.local_entity_id.as_bytes),
             )
+            self.states.step = TransactionStep.TRANSFER_COMPLETION
             return True
         return False
+
+    def _reset_internal(self, clear_packet_queue: bool):
+        self._params = _DestFieldWrapper()
+        self.states.state = CfdpState.IDLE
+        self.states.step = TransactionStep.IDLE
+        if clear_packet_queue:
+            self._pdus_to_be_sent.clear()
 
     def reset(self):
         """This function is public to allow completely resetting the handler, but it is explicitely
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
-        self._params = _DestFieldWrapper()
-        self._pdus_to_be_sent.clear()
-        self.states.state = CfdpState.IDLE
-        self.states.step = TransactionStep.IDLE
+        self._reset_internal(False)
 
     def __idle_fsm(self, packet: Optional[GenericPduPacket]):
         if packet is None:
@@ -539,6 +543,7 @@ class DestHandler:
             self._handle_transfer_completion()
         if self.states.step == TransactionStep.SENDING_FINISHED_PDU:
             self._prepare_finished_pdu()
+            self._handle_finished_pdu_sent()
         if self.states.step == TransactionStep.WAITING_FOR_FINISHED_ACK:
             self._handle_waiting_for_finished_ack(pdu_holder)
 
@@ -548,15 +553,6 @@ class DestHandler:
             raise UnretrievedPdusToBeSent(
                 f"{len(self._pdus_to_be_sent)} packets left to send"
             )
-        if self.states.step == TransactionStep.SENDING_FINISHED_PDU:
-            if (
-                self.states.state == CfdpState.BUSY
-                and self.transmission_mode == TransmissionMode.ACKNOWLEDGED
-            ):
-                self._start_positive_ack_procedure()
-                self.states.step = TransactionStep.WAITING_FOR_FINISHED_ACK
-                return
-            self.reset()
         if self.states.step == TransactionStep.SENDING_EOF_ACK_PDU:
             if (
                 self._params.acked_params.lost_seg_tracker.num_lost_segments > 0
@@ -601,7 +597,6 @@ class DestHandler:
     def _handle_eof_without_previous_metadata(self, eof_pdu: EofPdu):
         self._params.fp.progress = eof_pdu.file_size
         self._params.fp.file_size_eof = eof_pdu.file_size
-        self._params.fp.condition_code_eof = eof_pdu.condition_code
         self._params.acked_params.metadata_missing = True
         if self._params.fp.progress > 0:
             # Clear old list, deferred procedure for the whole file is now active.
@@ -622,6 +617,16 @@ class DestHandler:
     def _start_transaction_missing_metadata_recv_fd(self, fd_pdu: FileDataPdu):
         self._common_first_packet_not_metadata_pdu_handler(fd_pdu)
         self._handle_fd_without_previous_metadata(True, fd_pdu)
+
+    def _handle_finished_pdu_sent(self):
+        if (
+            self.states.state == CfdpState.BUSY
+            and self.transmission_mode == TransmissionMode.ACKNOWLEDGED
+        ):
+            self._start_positive_ack_procedure()
+            self.states.step = TransactionStep.WAITING_FOR_FINISHED_ACK
+            return
+        self._reset_internal(False)
 
     def _handle_fd_without_previous_metadata(
         self, first_pdu: bool, fd_pdu: FileDataPdu
@@ -793,7 +798,7 @@ class DestHandler:
                     f" {ack_pdu.directive_code_of_acked_pdu}"
                 )
             # We are done.
-            self.reset()
+            self._reset_internal(False)
 
     def _handle_positive_ack_procedures(self):
         """Positive ACK procedures according to chapter 4.7.1 of the CFDP standard.
@@ -872,7 +877,7 @@ class DestHandler:
         ) or self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             self.states.step = TransactionStep.SENDING_FINISHED_PDU
         else:
-            self.reset()
+            self._reset_internal(False)
 
     def _lost_segment_handling(self, offset: int, data_len: int):
         """Lost segment detection: 4.6.4.3.1 a) and b) are covered by this code. c) is covered
@@ -973,7 +978,6 @@ class DestHandler:
         """Returns whether to exit the FSM prematurely."""
         self._params.fp.crc32 = eof_pdu.file_checksum
         self._params.fp.file_size_eof = eof_pdu.file_size
-        self._params.fp.condition_code_eof = eof_pdu.condition_code
         if self.cfg.indication_cfg.eof_recv_indication_required:
             assert self._params.transaction_id is not None
             self.user.eof_recv_indication(self._params.transaction_id)
@@ -983,8 +987,11 @@ class DestHandler:
                 return
         else:
             # This is an EOF (Cancel), perform Cancel Response Procedures according to chapter
-            # 4.6.6 of the standard.
-            self._trigger_notice_of_completion_canceled(eof_pdu.condition_code)
+            # 4.6.6 of the standard. Set remote ID as fault location.
+            self._trigger_notice_of_completion_canceled(
+                eof_pdu.condition_code,
+                EntityIdTlv(self._params.remote_cfg.entity_id.as_bytes),
+            )
             # Store this as progress for the checksum calculation.
             self._params.fp.progress = self._params.fp.file_size_eof
             self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
@@ -1040,11 +1047,10 @@ class DestHandler:
         self._deferred_lost_segment_handling()
 
     def _prepare_eof_ack_packet(self):
-        assert self._params.fp.condition_code_eof is not None
         ack_pdu = AckPdu(
             self._params.pdu_conf,
             DirectiveType.EOF_PDU,
-            self._params.fp.condition_code_eof,
+            self._params.finished_params.condition_code,
             TransactionStatus.ACTIVE,
         )
         self._add_packet_to_be_sent(ack_pdu)
@@ -1078,9 +1084,12 @@ class DestHandler:
             self._prepare_eof_ack_packet()
             self.states.step = TransactionStep.SENDING_EOF_ACK_PDU
 
-    def _trigger_notice_of_completion_canceled(self, condition_code: ConditionCode):
+    def _trigger_notice_of_completion_canceled(
+        self, condition_code: ConditionCode, fault_location: EntityIdTlv
+    ):
         self._params.completion_disposition = CompletionDisposition.CANCELED
         self._params.finished_params.condition_code = condition_code
+        self._params.finished_params.fault_location = fault_location
 
     def _start_check_limit_handling(self):
         self.states.step = TransactionStep.RECV_FILE_DATA_WITH_CHECK_LIMIT_HANDLING
@@ -1118,6 +1127,9 @@ class DestHandler:
     def _prepare_finished_pdu(self):
         if self.states.packets_ready:
             raise UnretrievedPdusToBeSent()
+        # TODO: Fault location handling. Set remote entity ID for file copy
+        # operations cancelled with an EOF (Cancel) PDU, and the local ID for file
+        # copy operations cancelled with the local API.
         finished_pdu = FinishedPdu(
             params=self._params.finished_params,
             # The configuration was cached when the first metadata arrived

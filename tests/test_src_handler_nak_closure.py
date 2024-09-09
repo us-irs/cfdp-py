@@ -115,7 +115,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         )
         self._generic_file_segment_handling(0, rand_data[0 : self.file_segment_len])
         self.assertTrue(self.source_handler.cancel_request(tparams.id))
-        self.assertEqual(self.source_handler.step, TransactionStep.SENDING_EOF)
+        self._state_checker(None, 1, CfdpState.IDLE, TransactionStep.IDLE)
         next_packet = self.source_handler.get_next_packet()
         assert next_packet is not None
         self.assertTrue(next_packet.is_file_directive)

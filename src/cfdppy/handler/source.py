@@ -155,7 +155,7 @@ class _TransferFieldWrapper:
         self.pdu_conf.source_entity_id = source_id
 
     @property
-    def positve_ack_counter(self) -> int:
+    def positive_ack_counter(self) -> int:
         return self.positive_ack_params.ack_counter
 
     @property
@@ -267,7 +267,7 @@ class SourceHandler:
 
     @property
     def positive_ack_counter(self) -> int:
-        return self._params.positve_ack_counter
+        return self._params.positive_ack_counter
 
     @property
     def transmission_mode(self) -> Optional[TransmissionMode]:
@@ -364,7 +364,7 @@ class SourceHandler:
             self._params.transaction_id is not None
             and transaction_id == self._params.transaction_id
         ):
-            self._declare_fault(ConditionCode.CANCEL_REQUEST_RECEIVED)
+            self._notice_of_cancellation(ConditionCode.CANCEL_REQUEST_RECEIVED)
             return True
         return False
 
@@ -476,14 +476,21 @@ class SourceHandler:
     def transaction_id(self) -> Optional[TransactionId]:
         return self._params.transaction_id
 
-    def reset(self):
+    def _reset_internal(self, clear_packet_queue: bool):
         """This function is public to allow completely resetting the handler, but it is explicitely
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
         self.states.step = TransactionStep.IDLE
         self.states.state = CfdpState.IDLE
-        self._pdus_to_be_sent.clear()
+        if clear_packet_queue:
+            self._pdus_to_be_sent.clear()
         self._params.reset()
+
+    def reset(self):
+        """This function is public to allow completely resetting the handler, but it is explicitely
+        discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
+        """
+        self._reset_internal(True)
 
     def _fsm_non_idle(self, packet: Optional[AbstractFileDirectiveBase]):
         self._fsm_advancement_after_packets_were_sent()
@@ -505,7 +512,7 @@ class SourceHandler:
             self._prepare_eof_pdu(
                 self._checksum_calculation(self._params.fp.file_size),
             )
-            return
+            self._handle_eof_sent(False)
         if self.states.step == TransactionStep.WAITING_FOR_EOF_ACK:
             self._handle_waiting_for_ack(packet_holder)
         if self.states.step == TransactionStep.WAITING_FOR_FINISHED:
@@ -798,7 +805,7 @@ class SourceHandler:
             )
             self.user.transaction_finished_indication(indication_params)
         # Transaction finished
-        self.reset()
+        self._reset_internal(False)
 
     def _fsm_advancement_after_packets_were_sent(self):
         """Advance the internal FSM after all packets to be sent were retrieved from the handler."""
@@ -815,28 +822,24 @@ class SourceHandler:
             self._handle_file_data_sent()
         elif self.states.step == TransactionStep.SENDING_ACK_OF_FINISHED:
             self.states.step = TransactionStep.NOTICE_OF_COMPLETION
-        elif self.states.step == TransactionStep.SENDING_EOF:
-            self._handle_eof_sent()
 
-    def _handle_eof_sent(self):
-        if self.cfg.indication_cfg.eof_sent_indication_required:
-            assert self._params.transaction_id is not None
-            self.user.eof_sent_indication(self._params.transaction_id)
-        if self.transmission_mode == TransmissionMode.UNACKNOWLEDGED:
-            if self._params.closure_requested:
-                assert self._params.remote_cfg is not None
-                self._params.check_timer = (
-                    self.check_timer_provider.provide_check_timer(
-                        local_entity_id=self.cfg.local_entity_id,
-                        remote_entity_id=self._params.remote_cfg.entity_id,
-                        entity_type=EntityType.SENDING,
-                    )
-                )
-                self.states.step = TransactionStep.WAITING_FOR_FINISHED
-            else:
-                self.states.step = TransactionStep.NOTICE_OF_COMPLETION
-        else:
+    def _handle_eof_sent(self, cancel_eof: bool):
+        if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             self._start_positive_ack_procedure()
+            return
+        if cancel_eof:
+            self._reset_internal(False)
+            return
+        if self._params.closure_requested:
+            assert self._params.remote_cfg is not None
+            self._params.check_timer = self.check_timer_provider.provide_check_timer(
+                local_entity_id=self.cfg.local_entity_id,
+                remote_entity_id=self._params.remote_cfg.entity_id,
+                entity_type=EntityType.SENDING,
+            )
+            self.states.step = TransactionStep.WAITING_FOR_FINISHED
+        else:
+            self.states.step = TransactionStep.NOTICE_OF_COMPLETION
 
     def _handle_file_data_sent(self):
         if self._params.fp.progress == self._params.fp.file_size:
@@ -927,6 +930,9 @@ class SourceHandler:
                 condition_code=self._params.cond_code_eof,
             )
         )
+        if self.cfg.indication_cfg.eof_sent_indication_required:
+            assert self._params.transaction_id is not None
+            self.user.eof_sent_indication(self._params.transaction_id)
 
     def _get_next_transfer_seq_num(self):
         next_seq_num = self.seq_num_provider.get_and_increment()
@@ -941,6 +947,8 @@ class SourceHandler:
 
     def _declare_fault(self, cond: ConditionCode):
         fh = self.cfg.default_fault_handlers.get_fault_handler(cond)
+        # Cache those for later, because a notice of cancellation might lead to a reset of the
+        # handler.
         transaction_id = self._params.transaction_id
         progress = self._params.fp.progress
         assert transaction_id is not None
@@ -974,7 +982,7 @@ class SourceHandler:
         # As specified in 4.11.2.2, prepare an EOF PDU to be sent to the remote entity. Supply
         # the checksum for the file copy progress sent so far.
         self._prepare_eof_pdu(self._checksum_calculation(self._params.fp.progress))
-        self.states.step = TransactionStep.SENDING_EOF
+        self._handle_eof_sent(True)
         return True
 
     def _notice_of_suspension(self):
