@@ -78,7 +78,6 @@ class CompletionDisposition(enum.Enum):
 class _DestFileParams(_FileParamsBase):
     file_name: Path
     file_size_eof: Optional[int]
-    condition_code_eof: Optional[ConditionCode]
 
     @classmethod
     def empty(cls) -> _DestFileParams:
@@ -90,14 +89,12 @@ class _DestFileParams(_FileParamsBase):
             file_name=Path(),
             file_size_eof=None,
             metadata_only=False,
-            condition_code_eof=None,
         )
 
     def reset(self):
         super().reset()
         self.file_name = Path()
         self.file_size_eof = None
-        self.condition_code_eof = None
 
 
 class TransactionStep(enum.Enum):
@@ -593,7 +590,6 @@ class DestHandler:
     def _handle_eof_without_previous_metadata(self, eof_pdu: EofPdu):
         self._params.fp.progress = eof_pdu.file_size
         self._params.fp.file_size_eof = eof_pdu.file_size
-        self._params.fp.condition_code_eof = eof_pdu.condition_code
         self._params.acked_params.metadata_missing = True
         if self._params.fp.progress > 0:
             # Clear old list, deferred procedure for the whole file is now active.
@@ -975,7 +971,6 @@ class DestHandler:
         """Returns whether to exit the FSM prematurely."""
         self._params.fp.crc32 = eof_pdu.file_checksum
         self._params.fp.file_size_eof = eof_pdu.file_size
-        self._params.fp.condition_code_eof = eof_pdu.condition_code
         if self.cfg.indication_cfg.eof_recv_indication_required:
             assert self._params.transaction_id is not None
             self.user.eof_recv_indication(self._params.transaction_id)
@@ -1042,11 +1037,10 @@ class DestHandler:
         self._deferred_lost_segment_handling()
 
     def _prepare_eof_ack_packet(self):
-        assert self._params.fp.condition_code_eof is not None
         ack_pdu = AckPdu(
             self._params.pdu_conf,
             DirectiveType.EOF_PDU,
-            self._params.fp.condition_code_eof,
+            self._params.finished_params.condition_code,
             TransactionStatus.ACTIVE,
         )
         self._add_packet_to_be_sent(ack_pdu)
