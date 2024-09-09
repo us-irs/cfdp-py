@@ -6,7 +6,7 @@ The basic idea of CFDP is to convert files of any size into a stream of packets 
 data units (PDU). CFPD has an unacknowledged and acknowledged mode, with the option to request
 a transaction closure for the unacknowledged mode. Using the unacknowledged mode with no
 transaction closure is applicable for simplex communication paths, while the unacknowledged mode
-with closure is the easiest way to get a confirmation of a successfull file transfer, including a
+with closure is the easiest way to get a confirmation of a successful file transfer, including a
 CRC check on the remote side to verify file integrity. The acknowledged mode is the most complex
 mode which includes multiple mechanism to ensure succesfull packet transaction even for unreliable
 connections, including lost segment detection. As such, it can be compared to a specialized TCP
@@ -74,7 +74,7 @@ The transaction will be finished for the following conditions:
    class, has been inserted into the class.
 2. All check timers have elapsed. These check timers allow and out-of-order reception of EOF and
    file data PDUs, provided that the interval between the EOF PDU and the last file data PDUs is
-   not too large. Check timer support is not implemented yet.
+   not too large.
 3. All confirmation packets like Finished PDUs or the EOF ACK PDU have been sent back and confirmed
    by the remote side where applicable.
 
