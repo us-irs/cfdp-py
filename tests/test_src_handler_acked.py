@@ -122,7 +122,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
             None,
             1,
             CfdpState.BUSY,
-            TransactionStep.SENDING_EOF,
+            TransactionStep.WAITING_FOR_EOF_ACK,
         )
         cancelation_cb_mock: MagicMock = self.fault_handler.notice_of_cancellation_cb  # type: ignore
         cancelation_cb_mock.assert_called_once()

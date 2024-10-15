@@ -14,11 +14,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Simplified state machine usage: Packets are now inserted using an optional `packet` argument
   of the `state_machine` call.
+- Removed some of the visible intermedia transaction steps. For example, instead of remaining
+  on `TransactionStep.SENDING_FINISHED_PDU`, the destination handler will still generate the
+  Finished PDU but jump to the next step immediately without requiring another state machine call.
+  For the source handler, the same was done for the `TransactionStep.SENDING_EOF` step.
 
 ## Removed
 
 - `insert_packet` API of the source and destination handler. Packet insertion is now performed
   using the `state_machine` call.
+
+## Fixed
+
+- Fault location field of the Finished PDU is now set correctly for transfer cancellations.
 
 # [v0.2.0] 2024-08-27
 
