@@ -394,16 +394,18 @@ class SourceEntityHandler(Thread):
                     f"can only handle put requests target towards {REMOTE_ENTITY_ID} or "
                     f"{LOCAL_ENTITY_ID}"
                 )
+
             else:
                 try:
                     self.source_handler.put_request(put_req)
+                    return True
                 except SourceFileDoesNotExist as e:
                     _LOGGER.warning(
                         f"can not handle put request, source file {e.file} does not exist"
                     )
-            return True
         except Empty:
-            return False
+            pass
+        return False
 
     def _busy_handling(self):
         # We are getting the packets from a Queue here, they could for example also be polled
