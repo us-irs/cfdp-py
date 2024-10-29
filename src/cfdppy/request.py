@@ -28,9 +28,9 @@ class PutRequest:
     dest_file: Optional[Path]
     trans_mode: Optional[TransmissionMode]
     closure_requested: Optional[bool]
-    seg_ctrl: Optional[
-        SegmentationControl
-    ] = SegmentationControl.NO_RECORD_BOUNDARIES_PRESERVATION
+    seg_ctrl: Optional[SegmentationControl] = (
+        SegmentationControl.NO_RECORD_BOUNDARIES_PRESERVATION
+    )
     fault_handler_overrides: Optional[List[FaultHandlerOverrideTlv]] = None
     flow_label_tlv: Optional[FlowLabelTlv] = None
     msgs_to_user: Optional[List[MessageToUserTlv]] = None
