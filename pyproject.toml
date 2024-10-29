@@ -28,8 +28,7 @@ classifiers = [
   "Topic :: Scientific/Engineering"
 ]
 dependencies = [
-  "spacepackets>=0.24.2, <0.25",
-  # "spacepackets @ git+https://github.com/us-irs/spacepackets-py@entity-id-tlv-eq",
+  "spacepackets>=0.24.2, <=0.25",
   "crcmod~=1.7",
   "deprecation~=2.1",
 ]

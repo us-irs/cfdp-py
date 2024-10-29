@@ -66,7 +66,7 @@ into the destination handler and will be assembled into a file.
 A destination entity might still generate packets which need to be sent back to the source entity
 of the file transfer. However, it allows freedom of communcation like the source entity by leaving
 the actual transmission of generated packets to the user. The packets are returned to the user
-using the :py:meth:`cfdppy.handler.source.DestHandler.get_next_packet` call.
+using the :py:meth:`cfdppy.handler.dest.DestHandler.get_next_packet` call.
 
 The transaction will be finished for the following conditions:
 

@@ -46,7 +46,6 @@ class TransactionStartParams:
 
 
 class TestCfdpSourceHandler(TestCase):
-
     """It should be noted that this only verifies the correct generation of PDUs. There is
     no reception handler in play here which would be responsible for generating the files
     from these PDUs
