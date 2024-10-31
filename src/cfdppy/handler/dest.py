@@ -86,7 +86,7 @@ class _DestFileParams(_FileParamsBase):
             progress=0,
             segment_len=0,
             crc32=bytes(),
-            file_size=0,
+            file_size=None,
             file_name=Path(),
             file_size_eof=None,
             metadata_only=False,
@@ -347,6 +347,13 @@ class DestHandler:
     @property
     def progress(self) -> int:
         return self._params.fp.progress
+
+    @property
+    def file_size(self) -> Optional[int]:
+        """The file size property which was retrieved from the Metadata PDU. This will be None
+        if no transfer is active or more specifically if no Metadata PDU was received yet.
+        """
+        return self._params.fp.file_size
 
     @property
     def state(self) -> CfdpState:

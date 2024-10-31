@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Added
 
 - `progress` property for both source and destination handler to track the progress of a
-  transaction
+  transaction.
+- `file_size` property for both destination and source handler.
+- `get_pdu_request` getter function to retrieve the active Put Request for the source handler.
 
 # [v0.3.0] 2024-10-15
 
