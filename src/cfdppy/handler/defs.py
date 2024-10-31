@@ -8,17 +8,17 @@ class _FileParamsBase:
     segment_len: int
     crc32: Optional[bytes]
     metadata_only: bool
-    file_size: int
+    file_size: Optional[int]
 
     @classmethod
     def empty(cls):
         return cls(
-            progress=0, segment_len=0, crc32=None, file_size=0, metadata_only=False
+            progress=0, segment_len=0, crc32=None, file_size=None, metadata_only=False
         )
 
     def reset(self):
         self.progress = 0
         self.segment_len = 0
         self.crc32 = None
-        self.file_size = 0
+        self.file_size = None
         self.metadata_only = False

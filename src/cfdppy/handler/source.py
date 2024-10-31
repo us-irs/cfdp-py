@@ -292,6 +292,13 @@ class SourceHandler:
         return self._params.fp.progress
 
     @property
+    def file_size(self) -> int:
+        return self._params.fp.file_size
+
+    def get_put_request(self) -> Optional[PutRequest]:
+        return self._put_req
+
+    @property
     def num_packets_ready(self) -> int:
         return self.states.num_packets_ready
 

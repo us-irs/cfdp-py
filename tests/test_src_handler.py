@@ -205,6 +205,7 @@ class TestCfdpSourceHandler(TestCase):
         with self.assertRaises(UnretrievedPdusToBeSent):
             self.source_handler.state_machine_no_packet()
         next_packet = self.source_handler.get_next_packet()
+        self.assertEqual(self.source_handler.file_size, len(file_content))
         assert next_packet is not None
         file_data_pdu = self._check_fsm_and_contained_file_data(fsm_res, next_packet)
         eof_pdu = self._handle_eof_pdu(transaction_id, crc32, file_size)
@@ -301,7 +302,9 @@ class TestCfdpSourceHandler(TestCase):
         expected_originating_id: Optional[TransactionId] = None,
         crc_type: ChecksumType = ChecksumType.CRC_32,
     ) -> Tuple[MetadataPdu, TransactionId]:
+        self.assertIsNone(self.source_handler.get_put_request())
         self.source_handler.put_request(put_request)
+        self.assertIsNotNone(self.source_handler.get_put_request())
         fsm_res = self.source_handler.state_machine()
         self._state_checker(
             fsm_res,

@@ -193,7 +193,9 @@ class TestDestHandlerBase(TestCase):
         self._state_checker(
             None, expected_init_packets, expected_init_state, expected_init_step
         )
+        self.assertEqual(self.dest_handler.file_size, None)
         fsm_res = self.dest_handler.state_machine(file_transfer_init)
+        self.assertEqual(self.dest_handler.file_size, file_size)
         return fsm_res
 
     def _insert_file_segment(
