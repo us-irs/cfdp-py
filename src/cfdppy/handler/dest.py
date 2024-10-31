@@ -345,6 +345,10 @@ class DestHandler:
         return self._params.pdu_conf.trans_mode
 
     @property
+    def progress(self) -> int:
+        return self._params.fp.progress
+
+    @property
     def state(self) -> CfdpState:
         return self.states.state
 
@@ -437,7 +441,6 @@ class DestHandler:
             packet.pdu_type == PduType.FILE_DATA
             or packet.directive_type != DirectiveType.METADATA_PDU  # type: ignore
         ):
-            print(packet)
             self._handle_first_packet_not_metadata_pdu(packet)
         if packet.pdu_type == PduType.FILE_DIRECTIVE and (
             packet.directive_type  # type: ignore
