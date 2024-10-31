@@ -292,7 +292,7 @@ class SourceHandler:
         return self._params.fp.progress
 
     @property
-    def file_size(self) -> int:
+    def file_size(self) -> Optional[int]:
         return self._params.fp.file_size
 
     def get_put_request(self) -> Optional[PutRequest]:
