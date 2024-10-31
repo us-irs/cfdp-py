@@ -278,6 +278,9 @@ class TestCfdpSourceHandler(TestCase):
         self.assertEqual(fd_pdu.offset, expected_offset)
         self.assertEqual(fd_pdu.transaction_seq_num.value, self.expected_seq_num)
         self.assertEqual(fd_pdu.transmission_mode, self.expected_mode)
+        self.assertEqual(
+            self.source_handler.progress, fd_pdu.offset + len(fd_pdu.file_data)
+        )
         return fd_pdu
 
     def _check_fsm_and_contained_file_data(

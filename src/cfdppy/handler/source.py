@@ -288,6 +288,10 @@ class SourceHandler:
         return self.states.packets_ready
 
     @property
+    def progress(self) -> int:
+        return self._params.fp.progress
+
+    @property
     def num_packets_ready(self) -> int:
         return self.states.num_packets_ready
 

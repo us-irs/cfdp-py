@@ -138,7 +138,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._insert_file_segment(file_content[6:], 6, 1)
         self._generic_verify_missing_segment_requested(0, len(file_content), [(3, 6)])
         # Insert the missing file content.
-        self._insert_file_segment(file_content[3:6], 3)
+        self._insert_file_segment(file_content[3:6], 3, expected_progress=12)
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
@@ -162,7 +162,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # Insert the last file segment.
         self._insert_file_segment(file_content[6:], 6)
         # Now insert the missing segment.
-        self._insert_file_segment(file_content[2:4], 2)
+        self._insert_file_segment(file_content[2:4], 2, expected_progress=12)
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
@@ -189,8 +189,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_missing_segment_requested(0, len(file_content), [(6, 8)])
 
         # Supply the 2 missing file segments.
-        self._insert_file_segment(file_content[2:4], 2)
-        self._insert_file_segment(file_content[6:8], 6)
+        self._insert_file_segment(file_content[2:4], 2, expected_progress=12)
+        self._insert_file_segment(file_content[6:8], 6, expected_progress=12)
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
@@ -230,6 +230,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             2,
             1,
             expected_step=TransactionStep.WAITING_FOR_FINISHED_ACK,
+            expected_progress=12,
         )
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_content)
@@ -271,12 +272,14 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             2,
             expected_packets=0,
             expected_step=TransactionStep.WAITING_FOR_MISSING_DATA,
+            expected_progress=12,
         )
         fsm_res = self._insert_file_segment(
             file_content[6:8],
             6,
             expected_packets=1,
             expected_step=TransactionStep.WAITING_FOR_FINISHED_ACK,
+            expected_progress=12,
         )
         # Done.
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
@@ -410,6 +413,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             2,
             expected_packets=0,
             expected_step=TransactionStep.WAITING_FOR_MISSING_DATA,
+            expected_progress=12,
         )
         self.dest_handler.state_machine()
         # Now that we inserted a packet, the NAK activity counter should be reset.
@@ -429,6 +433,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             6,
             expected_packets=1,
             expected_step=TransactionStep.WAITING_FOR_FINISHED_ACK,
+            expected_progress=12,
         )
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_content)

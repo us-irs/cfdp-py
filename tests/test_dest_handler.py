@@ -203,10 +203,15 @@ class TestDestHandlerBase(TestCase):
         expected_packets: int = 0,
         expected_step: TransactionStep = TransactionStep.RECEIVING_FILE_DATA,
         check_indication: bool = True,
+        expected_progress: Optional[int] = None,
     ) -> FsmResult:
         fd_params = FileDataParams(file_data=segment, offset=offset)
         file_data_pdu = FileDataPdu(params=fd_params, pdu_conf=self.src_pdu_conf)
         fsm_res = self.dest_handler.state_machine(file_data_pdu)
+        if expected_progress is None:
+            self.assertEqual(self.dest_handler.progress, offset + len(segment))
+        else:
+            self.assertEqual(self.dest_handler.progress, expected_progress)
         if (
             self.indication_cfg.file_segment_recvd_indication_required
             and check_indication
