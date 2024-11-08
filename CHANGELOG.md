@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+# [v0.4.0] 2024-11-08
+
 ## Added
 
 - `progress` property for both source and destination handler to track the progress of a
