@@ -130,11 +130,11 @@ class TestCfdpSourceHandler(TestCase):
 
     def _handle_eof_pdu(
         self,
-        id: TransactionId,  # noqa A002 -> this should be changed to transaction_id to avoid hiding built-in id
+        transaction_id: TransactionId,
         expected_checksum: bytes,
         expected_file_size: int,
     ) -> EofPdu:
-        self.assertEqual(self.source_handler.transaction_seq_num, id.seq_num)
+        self.assertEqual(self.source_handler.transaction_seq_num, transaction_id.seq_num)
         transmission_mode = self.source_handler.transmission_mode
         fsm_res = self.source_handler.state_machine_no_packet()
         if transmission_mode == TransmissionMode.UNACKNOWLEDGED:
@@ -154,14 +154,14 @@ class TestCfdpSourceHandler(TestCase):
         self.assertEqual(next_packet.pdu_type, PduType.FILE_DIRECTIVE)
         self.assertEqual(next_packet.pdu_directive_type, DirectiveType.EOF_PDU)
         eof_pdu = next_packet.to_eof_pdu()
-        self.assertEqual(eof_pdu.transaction_seq_num, id.seq_num)
+        self.assertEqual(eof_pdu.transaction_seq_num, transaction_id.seq_num)
         # For an empty file, checksum verification does not really make sense, so we expect
         # a null checksum here.
         self.assertEqual(eof_pdu.file_checksum, expected_checksum)
         self.assertEqual(eof_pdu.file_size, expected_file_size)
         self.assertEqual(eof_pdu.condition_code, ConditionCode.NO_ERROR)
         self.assertEqual(eof_pdu.fault_location, None)
-        self._verify_eof_indication(id)
+        self._verify_eof_indication(transaction_id)
         if self.expected_mode == TransmissionMode.ACKNOWLEDGED:
             self._state_checker(
                 None,
