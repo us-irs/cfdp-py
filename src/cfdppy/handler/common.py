@@ -1,9 +1,14 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import enum
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from spacepackets.cfdp import DirectiveType, GenericPduPacket, PduType
 from spacepackets.cfdp.pdu import PduHolder
-from spacepackets.countdown import Countdown
+
+if TYPE_CHECKING:
+    from spacepackets.countdown import Countdown
 
 
 class PacketDestination(enum.Enum):
