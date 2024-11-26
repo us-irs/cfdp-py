@@ -48,7 +48,7 @@ DEST_ENTITY_QUEUE = Queue()
 TM_QUEUE = Queue()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(prog="CFDP Remote Entity Application")
     parser.add_argument("-v", "--verbose", action="count", default=0)
     stop_signal = threading.Event()

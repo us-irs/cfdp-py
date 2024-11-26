@@ -8,27 +8,27 @@ from spacepackets.util import UnsignedByteField
 
 
 class NoRemoteEntityCfgFound(Exception):
-    def __init__(self, entity_id: UnsignedByteField, *args, **kwargs):
-        super().__init__(args, kwargs)
+    def __init__(self, entity_id: UnsignedByteField) -> None:
+        super().__init__()
         self.remote_entity_id = entity_id
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"No remote entity found for entity ID {self.remote_entity_id}"
 
 
 class FsmNotCalledAfterPacketInsertion(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("Call the state machine before inserting the next packet")
 
 
 class SourceFileDoesNotExist(Exception):
-    def __init__(self, file: Path):
+    def __init__(self, file: Path) -> None:
         self.file = file
         super().__init__(f"Source file {self.file} does not exist")
 
 
 class ChecksumNotImplemented(Exception):
-    def __init__(self, checksum_type: ChecksumType):
+    def __init__(self, checksum_type: ChecksumType) -> None:
         self.checksum_type = checksum_type
         super().__init__(f"{self.checksum_type} not implemented")
 
@@ -42,7 +42,7 @@ class InvalidNakPdu(Exception):
 
 
 class InvalidPduDirection(Exception):
-    def __init__(self, expected_dir: Direction, found_dir: Direction):
+    def __init__(self, expected_dir: Direction, found_dir: Direction) -> None:
         self.expected_dir = expected_dir
         self.found_dir = found_dir
         super().__init__(
@@ -58,7 +58,7 @@ class InvalidSourceId(Exception):
         self,
         expected_src_id: UnsignedByteField,
         found_src_id: UnsignedByteField,
-    ):
+    ) -> None:
         self.expected_src_id = expected_src_id
         self.found_src_id = found_src_id
         super().__init__(
@@ -74,7 +74,7 @@ class InvalidDestinationId(Exception):
         self,
         expected_dest_id: UnsignedByteField,
         found_dest_id: UnsignedByteField,
-    ):
+    ) -> None:
         self.expected_dest_id = expected_dest_id
         self.found_dest_id = found_dest_id
         super().__init__(
@@ -83,7 +83,9 @@ class InvalidDestinationId(Exception):
 
 
 class InvalidTransactionSeqNum(Exception):
-    def __init__(self, expected: UnsignedByteField, received: UnsignedByteField):
+    def __init__(
+        self, expected: UnsignedByteField, received: UnsignedByteField
+    ) -> None:
         self.expected = expected
         self.received = received
         super().__init__(
@@ -96,7 +98,7 @@ class BusyError(Exception):
 
 
 class InvalidPduForSourceHandler(Exception):
-    def __init__(self, packet: AbstractFileDirectiveBase):
+    def __init__(self, packet: AbstractFileDirectiveBase) -> None:
         self.packet = packet
         super().__init__(f"Invalid packet {self.packet} for source handler")
 
@@ -115,14 +117,14 @@ class PduIgnoredForSource(Exception):
         self,
         reason: PduIgnoredForSourceReason,
         ignored_packet: AbstractFileDirectiveBase,
-    ):
+    ) -> None:
         self.ignored_packet = ignored_packet
         self.reason = reason
         super().__init__(f"ignored PDU packet at source handler: {reason!r}")
 
 
 class InvalidPduForDestHandler(Exception):
-    def __init__(self, packet: GenericPduPacket):
+    def __init__(self, packet: GenericPduPacket) -> None:
         self.packet = packet
         super().__init__(f"Invalid packet {self.packet} for source handler")
 
@@ -140,7 +142,7 @@ class PduIgnoredForDestReason(enum.IntEnum):
 class PduIgnoredForDest(Exception):
     def __init__(
         self, reason: PduIgnoredForDestReason, ignored_packet: GenericPduPacket
-    ):
+    ) -> None:
         self.ignored_packet = ignored_packet
         self.reason = reason
         super().__init__(f"ignored PDU packet at destination handler: {reason!r}")

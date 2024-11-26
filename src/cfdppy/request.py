@@ -40,7 +40,7 @@ class PutRequest:
     def metadata_only(self) -> bool:
         return self.source_file is None and self.dest_file is None
 
-    def __str__(self):
+    def __str__(self) -> str:
         src_file_str = "Unknown source file"
         dest_file_str = "Unknown destination file"
         if not self.metadata_only:

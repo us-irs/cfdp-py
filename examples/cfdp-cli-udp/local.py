@@ -59,7 +59,7 @@ DEST_ENTITY_QUEUE = Queue()
 TM_QUEUE = Queue()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(prog="CFDP Local Entity Application")
     parser.add_argument("-v", "--verbose", action="count", default=0)
     add_cfdp_procedure_arguments(parser)

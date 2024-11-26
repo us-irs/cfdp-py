@@ -47,7 +47,7 @@ class DefaultFaultHandlerBase(ABC):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         # The initial default handle will be to cancel the transaction
         self._handler_dict: dict[ConditionCode, FaultHandlerCode] = {
             ConditionCode.CANCEL_REQUEST_RECEIVED: FaultHandlerCode.NOTICE_OF_CANCELLATION,
@@ -66,7 +66,7 @@ class DefaultFaultHandlerBase(ABC):
     def get_fault_handler(self, condition: ConditionCode) -> FaultHandlerCode | None:
         return self._handler_dict.get(condition)
 
-    def set_handler(self, condition: ConditionCode, handler: FaultHandlerCode):
+    def set_handler(self, condition: ConditionCode, handler: FaultHandlerCode) -> None:
         """
         Raises
         -------
@@ -82,7 +82,7 @@ class DefaultFaultHandlerBase(ABC):
 
     def report_fault(
         self, transaction_id: TransactionId, condition: ConditionCode, progress: int
-    ):
+    ) -> None:
         """
         Raises
         -------
@@ -107,25 +107,25 @@ class DefaultFaultHandlerBase(ABC):
     @abc.abstractmethod
     def notice_of_suspension_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
     def notice_of_cancellation_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
     def abandoned_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
     def ignore_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         pass
 
 
@@ -264,7 +264,7 @@ class RemoteEntityCfgTable:
     """Thin abstraction for a dictionary containing remote configurations with the remote entity ID
     being used as a key."""
 
-    def __init__(self, init_cfgs: Sequence[RemoteEntityCfg] | None = None):
+    def __init__(self, init_cfgs: Sequence[RemoteEntityCfg] | None = None) -> None:
         self._remote_entity_dict = {}
         if init_cfgs is not None:
             self.add_configs(init_cfgs)
@@ -275,7 +275,7 @@ class RemoteEntityCfgTable:
         self._remote_entity_dict.update({cfg.entity_id.value: cfg})
         return True
 
-    def add_configs(self, cfgs: Sequence[RemoteEntityCfg]):
+    def add_configs(self, cfgs: Sequence[RemoteEntityCfg]) -> None:
         for cfg in cfgs:
             if cfg.entity_id in self._remote_entity_dict:
                 continue

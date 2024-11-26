@@ -95,7 +95,7 @@ class _DestFileParams(_FileParamsBase):
             metadata_only=False,
         )
 
-    def reset(self):
+    def reset(self) -> None:
         super().reset()
         self.file_name = Path()
         self.file_size_eof = None
@@ -144,21 +144,21 @@ class DestStateWrapper:
 
 
 class LostSegmentTracker:
-    def __init__(self):
+    def __init__(self) -> None:
         self.lost_segments = {}
 
     @property
-    def num_lost_segments(self):
+    def num_lost_segments(self) -> int:
         return len(self.lost_segments)
 
-    def reset(self):
+    def reset(self) -> None:
         self.lost_segments.clear()
 
-    def add_lost_segment(self, lost_seg: tuple[int, int]):
+    def add_lost_segment(self, lost_seg: tuple[int, int]) -> None:
         self.lost_segments.update({lost_seg[0]: lost_seg[1]})
         self.lost_segments = dict(sorted(self.lost_segments.items()))
 
-    def coalesce_lost_segments(self):
+    def coalesce_lost_segments(self) -> None:
         if len(self.lost_segments) <= 1:
             return
         merged_segments = []
@@ -233,7 +233,7 @@ class _AckedModeParams:
 class _DestFieldWrapper:
     """Private wrapper class for internal use only."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.transaction_id: TransactionId | None = None
         self.remote_cfg: RemoteEntityCfg | None = None
         self.check_timer: Countdown | None = None
@@ -256,7 +256,7 @@ class _DestFieldWrapper:
 
 
 class FsmResult:
-    def __init__(self, states: DestStateWrapper):
+    def __init__(self, states: DestStateWrapper) -> None:
         self.states = states
 
 
@@ -322,7 +322,7 @@ class DestHandler:
         user: CfdpUserBase,
         remote_cfg_table: RemoteEntityCfgTable,
         check_timer_provider: CheckTimerProvider,
-    ):
+    ) -> None:
         self.cfg = cfg
         self.remote_cfg_table = remote_cfg_table
         self.states = DestStateWrapper()
@@ -434,7 +434,7 @@ class DestHandler:
             self.__non_idle_fsm(packet)
         return FsmResult(self.states)
 
-    def _check_inserted_packet(self, packet: GenericPduPacket):
+    def _check_inserted_packet(self, packet: GenericPduPacket) -> None:
         if packet.direction != Direction.TOWARDS_RECEIVER:
             raise InvalidPduDirection(
                 Direction.TOWARDS_RECEIVER, packet.pdu_header.direction
@@ -497,20 +497,20 @@ class DestHandler:
             return True
         return False
 
-    def _reset_internal(self, clear_packet_queue: bool):
+    def _reset_internal(self, clear_packet_queue: bool) -> None:
         self._params = _DestFieldWrapper()
         self.states.state = CfdpState.IDLE
         self.states.step = TransactionStep.IDLE
         if clear_packet_queue:
             self._pdus_to_be_sent.clear()
 
-    def reset(self):
+    def reset(self) -> None:
         """This function is public to allow completely resetting the handler, but it is explicitely
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
         self._reset_internal(False)
 
-    def __idle_fsm(self, packet: GenericPduPacket | None):
+    def __idle_fsm(self, packet: GenericPduPacket | None) -> None:
         if packet is None:
             return
         pdu_holder = PduHolder(packet)
@@ -531,7 +531,7 @@ class DestHandler:
                     f"IDLE state machine"
                 )
 
-    def __non_idle_fsm(self, packet: GenericPduPacket | None):
+    def __non_idle_fsm(self, packet: GenericPduPacket | None) -> None:
         self._fsm_advancement_after_packets_were_sent()
         pdu_holder = PduHolder(packet)
         if (
@@ -562,7 +562,7 @@ class DestHandler:
         if self.states.step == TransactionStep.WAITING_FOR_FINISHED_ACK:
             self._handle_waiting_for_finished_ack(pdu_holder)
 
-    def _fsm_advancement_after_packets_were_sent(self):
+    def _fsm_advancement_after_packets_were_sent(self) -> None:
         """Advance the internal FSM after all packets to be sent were retrieved from the handler."""
         if len(self._pdus_to_be_sent) > 0:
             raise UnretrievedPdusToBeSent(
@@ -590,7 +590,7 @@ class DestHandler:
         self._handle_metadata_packet(metadata_pdu)
         return True
 
-    def _handle_first_packet_not_metadata_pdu(self, packet: GenericPduPacket):
+    def _handle_first_packet_not_metadata_pdu(self, packet: GenericPduPacket) -> None:
         if packet.transmission_mode == TransmissionMode.UNACKNOWLEDGED:
             raise PduIgnoredForDest(
                 PduIgnoredForDestReason.FIRST_PACKET_NOT_METADATA_PDU, packet
@@ -603,11 +603,11 @@ class DestHandler:
                 packet,
             )
 
-    def _start_transaction_missing_metadata_recv_eof(self, eof_pdu: EofPdu):
+    def _start_transaction_missing_metadata_recv_eof(self, eof_pdu: EofPdu) -> None:
         self._common_first_packet_not_metadata_pdu_handler(eof_pdu)
         self._handle_eof_without_previous_metadata(eof_pdu)
 
-    def _handle_eof_without_previous_metadata(self, eof_pdu: EofPdu):
+    def _handle_eof_without_previous_metadata(self, eof_pdu: EofPdu) -> None:
         self._params.fp.progress = eof_pdu.file_size
         self._params.fp.file_size_eof = eof_pdu.file_size
         self._params.acked_params.metadata_missing = True
@@ -627,11 +627,11 @@ class DestHandler:
         self._prepare_eof_ack_packet()
         self.states.step = TransactionStep.SENDING_EOF_ACK_PDU
 
-    def _start_transaction_missing_metadata_recv_fd(self, fd_pdu: FileDataPdu):
+    def _start_transaction_missing_metadata_recv_fd(self, fd_pdu: FileDataPdu) -> None:
         self._common_first_packet_not_metadata_pdu_handler(fd_pdu)
         self._handle_fd_without_previous_metadata(True, fd_pdu)
 
-    def _handle_finished_pdu_sent(self):
+    def _handle_finished_pdu_sent(self) -> None:
         if (
             self.states.state == CfdpState.BUSY
             and self.transmission_mode == TransmissionMode.ACKNOWLEDGED
@@ -643,7 +643,7 @@ class DestHandler:
 
     def _handle_fd_without_previous_metadata(
         self, first_pdu: bool, fd_pdu: FileDataPdu
-    ):
+    ) -> None:
         self._params.fp.progress = fd_pdu.offset + len(fd_pdu.file_data)
         if len(fd_pdu.file_data) > 0:
             start = fd_pdu.offset
@@ -681,13 +681,15 @@ class DestHandler:
                     )
                 )
 
-    def _common_first_packet_not_metadata_pdu_handler(self, pdu: GenericPduPacket):
+    def _common_first_packet_not_metadata_pdu_handler(
+        self, pdu: GenericPduPacket
+    ) -> None:
         self._params = _DestFieldWrapper()
         self._common_first_packet_handler(pdu)
         self.states.step = TransactionStep.WAITING_FOR_METADATA
         self._params.acked_params.metadata_missing = True
 
-    def _common_first_packet_handler(self, pdu: GenericPduPacket):
+    def _common_first_packet_handler(self, pdu: GenericPduPacket) -> bool | None:
         if self.states.state != CfdpState.IDLE:
             return False
         self.states.state = CfdpState.BUSY
@@ -701,7 +703,7 @@ class DestHandler:
         self._params.remote_cfg = self.remote_cfg_table.get_cfg(pdu.source_entity_id)
         return None
 
-    def _handle_metadata_packet(self, metadata_pdu: MetadataPdu):
+    def _handle_metadata_packet(self, metadata_pdu: MetadataPdu) -> None:
         self._params.checksum_type = metadata_pdu.checksum_type
         self._params.closure_requested = metadata_pdu.closure_requested
         self._params.acked_params.metadata_missing = False
@@ -744,7 +746,7 @@ class DestHandler:
         )
         self.user.metadata_recv_indication(params)
 
-    def _init_vfs_handling(self, source_base_name: str):
+    def _init_vfs_handling(self, source_base_name: str) -> None:
         try:
             # If the destination is a directory, append the base name to the directory
             # Example: For source path /tmp/hello.txt and dest path /tmp, build /tmp/hello.txt for
@@ -764,14 +766,14 @@ class DestHandler:
             )
             self._declare_fault(ConditionCode.FILESTORE_REJECTION)
 
-    def _handle_fd_or_eof_pdu(self, packet_holder: PduHolder):
+    def _handle_fd_or_eof_pdu(self, packet_holder: PduHolder) -> None:
         """Returns whether to exit the FSM prematurely."""
         if packet_holder.pdu_type == PduType.FILE_DATA:  # type: ignore
             self._handle_fd_pdu(packet_holder.to_file_data_pdu())
         elif packet_holder.pdu_directive_type == DirectiveType.EOF_PDU:  # type: ignore
             self._handle_eof_pdu(packet_holder.to_eof_pdu())
 
-    def _handle_waiting_for_missing_metadata(self, packet_holder: PduHolder):
+    def _handle_waiting_for_missing_metadata(self, packet_holder: PduHolder) -> None:
         if packet_holder.pdu is None:
             return
         if packet_holder.pdu_type == PduType.FILE_DATA:
@@ -787,12 +789,12 @@ class DestHandler:
             if self._params.acked_params.deferred_lost_segment_detection_active:
                 self._reset_nak_activity_parameters()
 
-    def _reset_nak_activity_parameters(self):
+    def _reset_nak_activity_parameters(self) -> None:
         assert self._params.acked_params.procedure_timer is not None
         self._params.acked_params.nak_activity_counter = 0
         self._params.acked_params.procedure_timer.reset()
 
-    def _handle_waiting_for_finished_ack(self, packet_holder: PduHolder):
+    def _handle_waiting_for_finished_ack(self, packet_holder: PduHolder) -> None:
         """Returns False if the FSM should be called again."""
         if (
             packet_holder.pdu is None
@@ -814,7 +816,7 @@ class DestHandler:
             # We are done.
             self._reset_internal(False)
 
-    def _handle_positive_ack_procedures(self):
+    def _handle_positive_ack_procedures(self) -> FsmResult | None:
         """Positive ACK procedures according to chapter 4.7.1 of the CFDP standard.
         Returns False if the FSM should be called again."""
         assert self._params.positive_ack_params.ack_timer is not None
@@ -840,7 +842,7 @@ class DestHandler:
             return None
         return None
 
-    def _handle_fd_pdu(self, file_data_pdu: FileDataPdu):
+    def _handle_fd_pdu(self, file_data_pdu: FileDataPdu) -> None:
         data = file_data_pdu.file_data
         offset = file_data_pdu.offset
         if self.cfg.indication_cfg.file_segment_recvd_indication_required:
@@ -890,7 +892,7 @@ class DestHandler:
                 )
                 self._declare_fault(ConditionCode.FILESTORE_REJECTION)
 
-    def _handle_transfer_completion(self):
+    def _handle_transfer_completion(self) -> None:
         self._notice_of_completion()
         if (
             self.transmission_mode == TransmissionMode.UNACKNOWLEDGED
@@ -900,7 +902,7 @@ class DestHandler:
         else:
             self._reset_internal(False)
 
-    def _lost_segment_handling(self, offset: int, data_len: int):
+    def _lost_segment_handling(self, offset: int, data_len: int) -> None:
         """Lost segment detection: 4.6.4.3.1 a) and b) are covered by this code. c) is covered
         by dedicated code which is run when the EOF PDU is handled."""
         if offset > self._params.acked_params.last_end_offset:
@@ -927,7 +929,7 @@ class DestHandler:
                 (offset, offset + data_len)
             )
 
-    def _deferred_lost_segment_handling(self):
+    def _deferred_lost_segment_handling(self) -> None:
         if not self._params.acked_params.deferred_lost_segment_detection_active:
             return
         assert self._params.remote_cfg is not None
@@ -995,7 +997,7 @@ class DestHandler:
             self._params.acked_params.nak_activity_counter += 1
             self._params.acked_params.procedure_timer.reset()
 
-    def _handle_eof_pdu(self, eof_pdu: EofPdu):
+    def _handle_eof_pdu(self, eof_pdu: EofPdu) -> bool | None:
         """Returns whether to exit the FSM prematurely."""
         self._params.fp.crc32 = eof_pdu.file_checksum
         self._params.fp.file_size_eof = eof_pdu.file_size
@@ -1056,7 +1058,7 @@ class DestHandler:
             return False
         return True
 
-    def _start_deferred_lost_segment_handling(self):
+    def _start_deferred_lost_segment_handling(self) -> None:
         if self._params.acked_params.metadata_missing:
             self.states.step = TransactionStep.WAITING_FOR_METADATA
         else:
@@ -1067,7 +1069,7 @@ class DestHandler:
         self._params.acked_params.last_end_offset = self._params.fp.file_size_eof  # type: ignore
         self._deferred_lost_segment_handling()
 
-    def _prepare_eof_ack_packet(self):
+    def _prepare_eof_ack_packet(self) -> None:
         ack_pdu = AckPdu(
             self._params.pdu_conf,
             DirectiveType.EOF_PDU,
@@ -1098,7 +1100,7 @@ class DestHandler:
             self._params.finished_params.condition_code = ConditionCode.NO_ERROR
         return file_delivery_complete
 
-    def _file_transfer_complete_transition(self):
+    def _file_transfer_complete_transition(self) -> None:
         if self.transmission_mode == TransmissionMode.UNACKNOWLEDGED:
             self.states.step = TransactionStep.TRANSFER_COMPLETION
         elif self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
@@ -1107,12 +1109,12 @@ class DestHandler:
 
     def _trigger_notice_of_completion_canceled(
         self, condition_code: ConditionCode, fault_location: EntityIdTlv
-    ):
+    ) -> None:
         self._params.completion_disposition = CompletionDisposition.CANCELED
         self._params.finished_params.condition_code = condition_code
         self._params.finished_params.fault_location = fault_location
 
-    def _start_check_limit_handling(self):
+    def _start_check_limit_handling(self) -> None:
         self.states.step = TransactionStep.RECV_FILE_DATA_WITH_CHECK_LIMIT_HANDLING
         assert self._params.remote_cfg is not None
         self._params.check_timer = self.check_timer_provider.provide_check_timer(
@@ -1122,7 +1124,7 @@ class DestHandler:
         )
         self._params.current_check_count = 0
 
-    def _notice_of_completion(self):
+    def _notice_of_completion(self) -> None:
         if self._params.completion_disposition == CompletionDisposition.COMPLETED:
             # TODO: Execute any filestore requests
             pass
@@ -1145,7 +1147,7 @@ class DestHandler:
             )
             self.user.transaction_finished_indication(finished_indic_params)
 
-    def _prepare_finished_pdu(self):
+    def _prepare_finished_pdu(self) -> None:
         if self.states.packets_ready:
             raise UnretrievedPdusToBeSent
         # TODO: Fault location handling. Set remote entity ID for file copy
@@ -1158,18 +1160,18 @@ class DestHandler:
         )
         self._add_packet_to_be_sent(finished_pdu)
 
-    def _start_positive_ack_procedure(self):
+    def _start_positive_ack_procedure(self) -> None:
         assert self._params.remote_cfg is not None
         self._params.positive_ack_params.ack_timer = Countdown.from_seconds(
             self._params.remote_cfg.positive_ack_timer_interval_seconds
         )
         self._params.positive_ack_params.ack_counter = 0
 
-    def _add_packet_to_be_sent(self, packet: GenericPduPacket):
+    def _add_packet_to_be_sent(self, packet: GenericPduPacket) -> None:
         self._pdus_to_be_sent.append(PduHolder(packet))
         self.states._num_packets_ready += 1
 
-    def _check_limit_handling(self):
+    def _check_limit_handling(self) -> None:
         assert self._params.check_timer is not None
         assert self._params.remote_cfg is not None
         if self._params.check_timer.timed_out():
@@ -1201,16 +1203,16 @@ class DestHandler:
         self.cfg.default_fault_handlers.report_fault(transaction_id, cond, progress)
         return fh
 
-    def _notice_of_cancellation(self, condition_code: ConditionCode):
+    def _notice_of_cancellation(self, condition_code: ConditionCode) -> None:
         self.states.step = TransactionStep.TRANSFER_COMPLETION
         self._params.finished_params.condition_code = condition_code
         self._params.completion_disposition = CompletionDisposition.CANCELED
 
-    def _notice_of_suspension(self):
+    def _notice_of_suspension(self) -> None:
         # TODO: Implement
         pass
 
-    def _abandon_transaction(self):
+    def _abandon_transaction(self) -> None:
         # I guess an abandoned transaction just stops whatever it is doing.. The implementation
         # for this is quite easy.
         self.reset()

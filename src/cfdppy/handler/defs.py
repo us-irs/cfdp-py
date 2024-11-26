@@ -10,12 +10,12 @@ class _FileParamsBase:
     file_size: int | None
 
     @classmethod
-    def empty(cls):
+    def empty(cls) -> "_FileParamsBase":
         return cls(
             progress=0, segment_len=0, crc32=None, file_size=None, metadata_only=False
         )
 
-    def reset(self):
+    def reset(self) -> None:
         self.progress = 0
         self.segment_len = 0
         self.crc32 = None

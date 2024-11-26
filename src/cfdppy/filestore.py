@@ -4,7 +4,7 @@ import os
 import platform
 import shutil
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, NoReturn
 
 from crcmod.predefined import PredefinedCrc
 from spacepackets.cfdp.defs import NULL_CHECKSUM_U32, ChecksumType
@@ -26,7 +26,9 @@ class VirtualFilestore(abc.ABC):
         raise NotImplementedError("Reading file not implemented in virtual filestore")
 
     @abc.abstractmethod
-    def read_from_opened_file(self, bytes_io: BinaryIO, offset: int, read_len: int):
+    def read_from_opened_file(
+        self, bytes_io: BinaryIO, offset: int, read_len: int
+    ) -> NoReturn:
         raise NotImplementedError(
             "Reading from opened file not implemented in virtual filestore"
         )
@@ -44,7 +46,7 @@ class VirtualFilestore(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def truncate_file(self, file: Path):
+    def truncate_file(self, file: Path) -> None:
         pass
 
     @abc.abstractmethod
@@ -52,7 +54,7 @@ class VirtualFilestore(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def write_data(self, file: Path, data: bytes, offset: int | None):
+    def write_data(self, file: Path, data: bytes, offset: int | None) -> NoReturn:
         """This is not used as part of a filestore request, it is used to build up the received
         file.
 
@@ -142,7 +144,7 @@ class VirtualFilestore(abc.ABC):
 
 
 class NativeFilestore(VirtualFilestore):
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def read_data(
@@ -164,7 +166,9 @@ class NativeFilestore(VirtualFilestore):
             raise FileNotFoundError(file)
         return file.stat().st_size
 
-    def read_from_opened_file(self, bytes_io: BinaryIO, offset: int, read_len: int):
+    def read_from_opened_file(
+        self, bytes_io: BinaryIO, offset: int, read_len: int
+    ) -> bytes:
         bytes_io.seek(offset)
         return bytes_io.read(read_len)
 
@@ -177,13 +181,13 @@ class NativeFilestore(VirtualFilestore):
     def filename_from_full_path(self, path: Path) -> str | None:
         return path.name
 
-    def truncate_file(self, file: Path):
+    def truncate_file(self, file: Path) -> None:
         if not file.exists():
             raise FileNotFoundError(file)
         with open(file, "w"):
             pass
 
-    def write_data(self, file: Path, data: bytes, offset: int | None):
+    def write_data(self, file: Path, data: bytes, offset: int | None) -> None:
         """Primary function used to perform the CFDP Copy Procedure. This will also create a new
         file as long as no other file with the same name exists
 
@@ -304,7 +308,7 @@ class NativeFilestore(VirtualFilestore):
             os.chdir(curr_path)
         return FilestoreResponseStatusCode.SUCCESS
 
-    def _verify_checksum(self, checksum_type: ChecksumType):
+    def _verify_checksum(self, checksum_type: ChecksumType) -> None:
         if checksum_type not in [
             ChecksumType.CRC_32,
             ChecksumType.CRC_32C,

@@ -63,7 +63,7 @@ class CfdpUserBase(ABC):
     to provide custom indication handlers.
     """
 
-    def __init__(self, vfs: VirtualFilestore | None = None):
+    def __init__(self, vfs: VirtualFilestore | None = None) -> None:
         if vfs is None:
             vfs = NativeFilestore()
         self.vfs = vfs
@@ -72,18 +72,20 @@ class CfdpUserBase(ABC):
     def transaction_indication(
         self,
         transaction_indication_params: TransactionParams,
-    ):
+    ) -> None:
         """This indication is used to report the transaction ID to the CFDP user"""
         _LOGGER.info(
             f"Transaction.indication for {transaction_indication_params.transaction_id}"
         )
 
     @abstractmethod
-    def eof_sent_indication(self, transaction_id: TransactionId):
+    def eof_sent_indication(self, transaction_id: TransactionId) -> None:
         _LOGGER.info(f"EOF-Sent.indication for {transaction_id}")
 
     @abstractmethod
-    def transaction_finished_indication(self, params: TransactionFinishedParams):
+    def transaction_finished_indication(
+        self, params: TransactionFinishedParams
+    ) -> None:
         """This is the ``Transaction-Finished.Indication`` as specified in chapter 3.4.8 of the
         standard.
 
@@ -96,21 +98,23 @@ class CfdpUserBase(ABC):
         print(params)
 
     @abstractmethod
-    def metadata_recv_indication(self, params: MetadataRecvParams):
+    def metadata_recv_indication(self, params: MetadataRecvParams) -> None:
         _LOGGER.info(
             f"Metadata-Recv.indication for {params.transaction_id}. Parameters:"
         )
         print(params)
 
     @abstractmethod
-    def file_segment_recv_indication(self, params: FileSegmentRecvdParams):
+    def file_segment_recv_indication(self, params: FileSegmentRecvdParams) -> None:
         _LOGGER.info(
             f"File-Segment-Recv.indication for {params.transaction_id}. Parameters:"
         )
         print(params)
 
     @abstractmethod
-    def report_indication(self, transaction_id: TransactionId, status_report: Any):
+    def report_indication(
+        self, transaction_id: TransactionId, status_report: Any # noqa ANN401
+    ) -> None:
         # TODO: p.28 of the CFDP standard specifies what information the status report parameter
         #       could contain. I think it would be better to not hardcode the type of the status
         #       report here, but something like Union[any, CfdpStatusReport] with CfdpStatusReport
@@ -121,13 +125,13 @@ class CfdpUserBase(ABC):
     @abstractmethod
     def suspended_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode
-    ):
+    ) -> None:
         _LOGGER.info(
             f"Suspended.indication for {transaction_id} | Condition Code: {cond_code}"
         )
 
     @abstractmethod
-    def resumed_indication(self, transaction_id: TransactionId, progress: int):
+    def resumed_indication(self, transaction_id: TransactionId, progress: int) -> None:
         _LOGGER.info(
             f"Resumed.indication for {transaction_id} | Progress: {progress} bytes"
         )
@@ -135,7 +139,7 @@ class CfdpUserBase(ABC):
     @abstractmethod
     def fault_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode, progress: int
-    ):
+    ) -> None:
         """This is the ``Fault.Indication`` as specified in chapter 3.4.14 of the
         standard.
 
@@ -150,7 +154,7 @@ class CfdpUserBase(ABC):
     @abstractmethod
     def abandoned_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode, progress: int
-    ):
+    ) -> None:
         """This is the ``Fault.Indication`` as specified in chapter 3.4.15 of the
         standard.
 
@@ -163,5 +167,5 @@ class CfdpUserBase(ABC):
         )
 
     @abstractmethod
-    def eof_recv_indication(self, transaction_id: TransactionId):
+    def eof_recv_indication(self, transaction_id: TransactionId) -> None:
         _LOGGER.info(f"EOF-Recv.indication for {transaction_id}")

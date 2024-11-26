@@ -87,7 +87,7 @@ DEST_TO_SOURCE_QUEUE = Queue()
 class CfdpFaultHandler(DefaultFaultHandlerBase):
     def notice_of_suspension_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"Received Notice of Suspension for transaction {transaction_id!r} with condition "
             f"code {cond!r}. Progress: {progress}"
@@ -95,7 +95,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
     def notice_of_cancellation_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"Received Notice of Cancellation for transaction {transaction_id!r} with condition "
             f"code {cond!r}. Progress: {progress}"
@@ -103,7 +103,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
     def abandoned_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"Received Abanadoned Fault for transaction {transaction_id!r} with condition "
             f"code {cond!r}. Progress: {progress}"
@@ -111,7 +111,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
     def ignore_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"Ignored Fault for transaction {transaction_id!r} with condition "
             f"code {cond!r}. Progress: {progress}"
@@ -119,38 +119,42 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
 
 class CfdpUser(CfdpUserBase):
-    def __init__(self, base_str: str):
+    def __init__(self, base_str: str) -> None:
         self.base_str = base_str
         super().__init__()
 
     def transaction_indication(
         self,
         transaction_indication_params: TransactionParams,
-    ):
+    ) -> None:
         """This indication is used to report the transaction ID to the CFDP user"""
         _LOGGER.info(
             f"{self.base_str}: Transaction.indication for {transaction_indication_params.transaction_id}"
         )
 
-    def eof_sent_indication(self, transaction_id: TransactionId):
+    def eof_sent_indication(self, transaction_id: TransactionId) -> None:
         _LOGGER.info(f"{self.base_str}: EOF-Sent.indication for {transaction_id}")
 
-    def transaction_finished_indication(self, params: TransactionFinishedParams):
+    def transaction_finished_indication(
+        self, params: TransactionFinishedParams
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Transaction-Finished.indication for {params.transaction_id}."
         )
 
-    def metadata_recv_indication(self, params: MetadataRecvParams):
+    def metadata_recv_indication(self, params: MetadataRecvParams) -> None:
         _LOGGER.info(
             f"{self.base_str}: Metadata-Recv.indication for {params.transaction_id}."
         )
 
-    def file_segment_recv_indication(self, params: FileSegmentRecvdParams):
+    def file_segment_recv_indication(self, params: FileSegmentRecvdParams) -> None:
         _LOGGER.info(
             f"{self.base_str}: File-Segment-Recv.indication for {params.transaction_id}."
         )
 
-    def report_indication(self, transaction_id: TransactionId, status_report: Any):
+    def report_indication(
+        self, transaction_id: TransactionId, status_report: Any  # noqa ANN401
+    ) -> None:
         # TODO: p.28 of the CFDP standard specifies what information the status report parameter
         #       could contain. I think it would be better to not hardcode the type of the status
         #       report here, but something like Union[any, CfdpStatusReport] with CfdpStatusReport
@@ -160,19 +164,19 @@ class CfdpUser(CfdpUserBase):
 
     def suspended_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode
-    ):
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Suspended.indication for {transaction_id} | Condition Code: {cond_code}"
         )
 
-    def resumed_indication(self, transaction_id: TransactionId, progress: int):
+    def resumed_indication(self, transaction_id: TransactionId, progress: int) -> None:
         _LOGGER.info(
             f"{self.base_str}: Resumed.indication for {transaction_id} | Progress: {progress} bytes"
         )
 
     def fault_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Fault.indication for {transaction_id} | Condition Code: {cond_code} | "
             f"Progress: {progress} bytes"
@@ -180,13 +184,13 @@ class CfdpUser(CfdpUserBase):
 
     def abandoned_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Abandoned.indication for {transaction_id} | Condition Code: {cond_code} |"
             f" Progress: {progress} bytes"
         )
 
-    def eof_recv_indication(self, transaction_id: TransactionId):
+    def eof_recv_indication(self, transaction_id: TransactionId) -> None:
         _LOGGER.info(f"{self.base_str}: EOF-Recv.indication for {transaction_id}")
 
 
@@ -200,7 +204,7 @@ class CustomCheckTimerProvider(CheckTimerProvider):
         return Countdown(timedelta(seconds=5.0))
 
 
-def main():
+def main() -> None:
     help_txt = (
         "This mini application shows the source and destination entity handlers in action. "
         "You can configure the transmission mode with the -t argument, which defaults to the "
@@ -306,7 +310,7 @@ def main():
 
 def source_entity_handler(
     transfer_params: TransferParams, source_handler: SourceHandler
-):
+) -> None:
     # This put request could in principle also be sent from something like a front end application.
     put_request = PutRequest(
         destination_id=DEST_ENTITY_ID,
@@ -350,7 +354,9 @@ def source_entity_handler(
             break
 
 
-def dest_entity_handler(transfer_params: TransferParams, dest_handler: DestHandler):
+def dest_entity_handler(
+    transfer_params: TransferParams, dest_handler: DestHandler
+) -> None:
     first_packet = True
     packet_received = False
     packet = None

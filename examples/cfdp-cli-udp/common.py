@@ -77,13 +77,13 @@ REMOTE_PORT = 5222
 
 
 class CfdpFaultHandler(DefaultFaultHandlerBase):
-    def __init__(self, base_str: str):
+    def __init__(self, base_str: str) -> None:
         self.base_str = base_str
         super().__init__()
 
     def notice_of_suspension_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"{self.base_str}: Received Notice of Suspension for transaction {transaction_id!r} "
             f"with condition code {cond!r}. Progress: {progress}"
@@ -91,7 +91,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
     def notice_of_cancellation_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"{self.base_str}: Received Notice of Cancellation for transaction {transaction_id!r} "
             f"with condition code {cond!r}. Progress: {progress}"
@@ -99,7 +99,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
     def abandoned_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"{self.base_str}: Abandoned fault for transaction {transaction_id!r} "
             f"with condition code {cond!r}. Progress: {progress}"
@@ -107,7 +107,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
     def ignore_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.warning(
             f"{self.base_str}: Ignored fault for transaction {transaction_id!r} "
             f"with condition code {cond!r}. Progress: {progress}"
@@ -115,7 +115,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
 
 class CfdpUser(CfdpUserBase):
-    def __init__(self, base_str: str, put_req_queue: Queue):
+    def __init__(self, base_str: str, put_req_queue: Queue) -> None:
         self.base_str = base_str
         self.put_req_queue = put_req_queue
         # This is a dictionary where the key is the current transaction ID for a transaction which
@@ -126,7 +126,7 @@ class CfdpUser(CfdpUserBase):
     def transaction_indication(
         self,
         transaction_indication_params: TransactionParams,
-    ):
+    ) -> None:
         """This indication is used to report the transaction ID to the CFDP user"""
         _LOGGER.info(
             f"{self.base_str}: Transaction.indication for {transaction_indication_params.transaction_id}"
@@ -142,10 +142,12 @@ class CfdpUser(CfdpUserBase):
                 }
             )
 
-    def eof_sent_indication(self, transaction_id: TransactionId):
+    def eof_sent_indication(self, transaction_id: TransactionId) -> None:
         _LOGGER.info(f"{self.base_str}: EOF-Sent.indication for {transaction_id}")
 
-    def transaction_finished_indication(self, params: TransactionFinishedParams):
+    def transaction_finished_indication(
+        self, params: TransactionFinishedParams
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Transaction-Finished.indication for {params.transaction_id}."
         )
@@ -178,7 +180,7 @@ class CfdpUser(CfdpUserBase):
             self.put_req_queue.put(put_req)
             self.active_proxy_put_reqs.pop(params.transaction_id)
 
-    def metadata_recv_indication(self, params: MetadataRecvParams):
+    def metadata_recv_indication(self, params: MetadataRecvParams) -> None:
         _LOGGER.info(
             f"{self.base_str}: Metadata-Recv.indication for {params.transaction_id}."
         )
@@ -187,7 +189,7 @@ class CfdpUser(CfdpUserBase):
 
     def _handle_msgs_to_user(
         self, transaction_id: TransactionId, msgs_to_user: list[MessageToUserTlv]
-    ):
+    ) -> None:
         for msg_to_user in msgs_to_user:
             if msg_to_user.is_reserved_cfdp_message():
                 reserved_msg_tlv = msg_to_user.to_reserved_msg_tlv()
@@ -198,7 +200,7 @@ class CfdpUser(CfdpUserBase):
 
     def _handle_reserved_cfdp_message(
         self, transaction_id: TransactionId, reserved_cfdp_msg: ReservedCfdpMessage
-    ):
+    ) -> None:
         if reserved_cfdp_msg.is_cfdp_proxy_operation():
             self._handle_cfdp_proxy_operation(transaction_id, reserved_cfdp_msg)
         elif reserved_cfdp_msg.is_originating_transaction_id():
@@ -209,7 +211,7 @@ class CfdpUser(CfdpUserBase):
 
     def _handle_cfdp_proxy_operation(
         self, transaction_id: TransactionId, reserved_cfdp_msg: ReservedCfdpMessage
-    ):
+    ) -> None:
         if (
             reserved_cfdp_msg.get_cfdp_proxy_message_type()
             == ProxyMessageType.PUT_REQUEST
@@ -237,12 +239,14 @@ class CfdpUser(CfdpUserBase):
             put_response_params = reserved_cfdp_msg.get_proxy_put_response_params()
             _LOGGER.info(f"Received Proxy Put Response: {put_response_params}")
 
-    def file_segment_recv_indication(self, params: FileSegmentRecvdParams):
+    def file_segment_recv_indication(self, params: FileSegmentRecvdParams) -> None:
         _LOGGER.info(
             f"{self.base_str}: File-Segment-Recv.indication for {params.transaction_id}."
         )
 
-    def report_indication(self, transaction_id: TransactionId, status_report: Any):
+    def report_indication(
+        self, transaction_id: TransactionId, status_report: Any # noqa ANN401
+    ) -> None:
         # TODO: p.28 of the CFDP standard specifies what information the status report parameter
         #       could contain. I think it would be better to not hardcode the type of the status
         #       report here, but something like Union[any, CfdpStatusReport] with CfdpStatusReport
@@ -252,19 +256,19 @@ class CfdpUser(CfdpUserBase):
 
     def suspended_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode
-    ):
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Suspended.indication for {transaction_id} | Condition Code: {cond_code}"
         )
 
-    def resumed_indication(self, transaction_id: TransactionId, progress: int):
+    def resumed_indication(self, transaction_id: TransactionId, progress: int) -> None:
         _LOGGER.info(
             f"{self.base_str}: Resumed.indication for {transaction_id} | Progress: {progress} bytes"
         )
 
     def fault_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Fault.indication for {transaction_id} | Condition Code: {cond_code} | "
             f"Progress: {progress} bytes"
@@ -272,13 +276,13 @@ class CfdpUser(CfdpUserBase):
 
     def abandoned_indication(
         self, transaction_id: TransactionId, cond_code: ConditionCode, progress: int
-    ):
+    ) -> None:
         _LOGGER.info(
             f"{self.base_str}: Abandoned.indication for {transaction_id} | Condition Code: {cond_code} |"
             f" Progress: {progress} bytes"
         )
 
-    def eof_recv_indication(self, transaction_id: TransactionId):
+    def eof_recv_indication(self, transaction_id: TransactionId) -> None:
         _LOGGER.info(f"{self.base_str}: EOF-Recv.indication for {transaction_id}")
 
 
@@ -302,7 +306,7 @@ class UdpServer(Thread):
         source_entity_rx_queue: Queue,
         dest_entity_rx_queue: Queue,
         stop_signal: threading.Event,
-    ):
+    ) -> None:
         super().__init__()
         self.sleep_time = sleep_time
         self.udp_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -315,7 +319,7 @@ class UdpServer(Thread):
         self.source_entity_queue = source_entity_rx_queue
         self.dest_entity_queue = dest_entity_rx_queue
 
-    def run(self):
+    def run(self) -> None:
         _LOGGER.info(f"Starting UDP server on {self.addr}")
         while True:
             if self.stop_signal.is_set():
@@ -323,7 +327,7 @@ class UdpServer(Thread):
             self.periodic_operation()
             time.sleep(self.sleep_time)
 
-    def periodic_operation(self):
+    def periodic_operation(self) -> None:
         while True:
             next_packet = self.poll_next_udp_packet()
             if next_packet is None or next_packet.pdu is None:
@@ -344,7 +348,7 @@ class UdpServer(Thread):
             return PduFactory.from_raw_to_holder(data)
         return None
 
-    def send_packets(self):
+    def send_packets(self) -> None:
         while True:
             try:
                 next_tm = self.tm_queue.get(False)
@@ -377,7 +381,7 @@ class SourceEntityHandler(Thread):
         source_entity_queue: Queue,
         tm_queue: Queue,
         stop_signal: threading.Event,
-    ):
+    ) -> None:
         super().__init__()
         self.base_str = base_str
         self.verbose_level = verbose_level
@@ -409,7 +413,7 @@ class SourceEntityHandler(Thread):
             pass
         return False
 
-    def _busy_handling(self):
+    def _busy_handling(self) -> bool | None:
         # We are getting the packets from a Queue here, they could for example also be polled
         # from a network.
         packet_received = False
@@ -459,7 +463,7 @@ class SourceEntityHandler(Thread):
                 packet_sent = True
         return packet_sent
 
-    def run(self):
+    def run(self) -> None:
         _LOGGER.info(f"Starting {self.base_str}")
         while True:
             if self.stop_signal.is_set():
@@ -486,7 +490,7 @@ class DestEntityHandler(Thread):
         dest_entity_queue: Queue,
         tm_queue: Queue,
         stop_signal: threading.Event,
-    ):
+    ) -> None:
         super().__init__()
         self.base_str = base_str
         self.verbose_level = verbose_level
@@ -495,7 +499,7 @@ class DestEntityHandler(Thread):
         self.tm_queue = tm_queue
         self.stop_signal = stop_signal
 
-    def run(self):
+    def run(self) -> None:
         _LOGGER.info(
             f"Starting {self.base_str}. Local ID {self.dest_handler.cfg.local_entity_id}"
         )
