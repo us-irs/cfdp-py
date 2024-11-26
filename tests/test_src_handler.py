@@ -2,21 +2,9 @@ import copy
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple, cast
+from typing import cast
 from unittest.mock import MagicMock
 
-from cfdppy import (
-    CfdpState,
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
-)
-from cfdppy.exceptions import UnretrievedPdusToBeSent
-from cfdppy.handler import FsmResult, SourceHandler
-from cfdppy.handler.source import TransactionStep
-from cfdppy.request import PutRequest
-from cfdppy.user import TransactionFinishedParams, TransactionParams
 from crcmod.predefined import PredefinedCrc
 from pyfakefs.fake_filesystem_unittest import TestCase
 from spacepackets.cfdp import (
@@ -32,6 +20,19 @@ from spacepackets.cfdp.pdu import DirectiveType, EofPdu, FileDataPdu, MetadataPd
 from spacepackets.seqcount import SeqCountProvider
 from spacepackets.util import ByteFieldU16, ByteFieldU32
 
+from cfdppy import (
+    CfdpState,
+    IndicationCfg,
+    LocalEntityCfg,
+    RemoteEntityCfg,
+    RemoteEntityCfgTable,
+)
+from cfdppy.exceptions import UnretrievedPdusToBeSent
+from cfdppy.handler import FsmResult, SourceHandler
+from cfdppy.handler.source import TransactionStep
+from cfdppy.request import PutRequest
+from cfdppy.user import TransactionFinishedParams, TransactionParams
+
 from .cfdp_fault_handler_mock import FaultHandler
 from .cfdp_user_mock import CfdpUser
 from .common import CheckTimerProviderForTest
@@ -41,8 +42,8 @@ from .common import CheckTimerProviderForTest
 class TransactionStartParams:
     id: TransactionId
     metadata_pdu: MetadataPdu
-    file_size: Optional[int]
-    crc_32: Optional[bytes]
+    file_size: int | None
+    crc_32: bytes | None
 
 
 class TestCfdpSourceHandler(TestCase):
@@ -106,11 +107,11 @@ class TestCfdpSourceHandler(TestCase):
         )
 
     def _common_empty_file_test(
-        self, transmission_mode: Optional[TransmissionMode]
-    ) -> Tuple[TransactionId, MetadataPdu, EofPdu]:
+        self, transmission_mode: TransmissionMode | None
+    ) -> tuple[TransactionId, MetadataPdu, EofPdu]:
         source_path = Path(f"{tempfile.gettempdir()}/hello.txt")
         dest_path = Path(f"{tempfile.gettempdir()}/hello_copy.txt")
-        self._generate_file(source_path, bytes())
+        self._generate_file(source_path, b"")
         self.seq_num_provider.get_and_increment = MagicMock(
             return_value=self.expected_seq_num
         )
@@ -129,7 +130,7 @@ class TestCfdpSourceHandler(TestCase):
 
     def _handle_eof_pdu(
         self,
-        id: TransactionId,
+        id: TransactionId,  # noqa A002 -> this should be changed to transaction_id to avoid hiding built-in id
         expected_checksum: bytes,
         expected_file_size: int,
     ) -> EofPdu:
@@ -172,10 +173,10 @@ class TestCfdpSourceHandler(TestCase):
 
     def _common_small_file_test(
         self,
-        transmission_mode: Optional[TransmissionMode],
+        transmission_mode: TransmissionMode | None,
         closure_requested: bool,
         file_content: bytes,
-    ) -> Tuple[TransactionId, MetadataPdu, FileDataPdu, EofPdu]:
+    ) -> tuple[TransactionId, MetadataPdu, FileDataPdu, EofPdu]:
         source_path = Path(f"{tempfile.gettempdir()}/hello.txt")
         dest_path = Path(f"{tempfile.gettempdir()}/hello_copy.txt")
         self.source_id = ByteFieldU32(1)
@@ -246,8 +247,8 @@ class TestCfdpSourceHandler(TestCase):
     def _transaction_with_file_data_wrapper(
         self,
         put_req: PutRequest,
-        data: Optional[bytes],
-        originating_transaction_id: Optional[TransactionId] = None,
+        data: bytes | None,
+        originating_transaction_id: TransactionId | None = None,
         crc_type: ChecksumType = ChecksumType.CRC_32,
     ) -> TransactionStartParams:
         file_size = None
@@ -299,9 +300,9 @@ class TestCfdpSourceHandler(TestCase):
     def _start_source_transaction(
         self,
         put_request: PutRequest,
-        expected_originating_id: Optional[TransactionId] = None,
+        expected_originating_id: TransactionId | None = None,
         crc_type: ChecksumType = ChecksumType.CRC_32,
-    ) -> Tuple[MetadataPdu, TransactionId]:
+    ) -> tuple[MetadataPdu, TransactionId]:
         self.assertIsNone(self.source_handler.get_put_request())
         self.source_handler.put_request(put_request)
         self.assertIsNotNone(self.source_handler.get_put_request())
@@ -337,7 +338,7 @@ class TestCfdpSourceHandler(TestCase):
         return metadata_pdu, transaction_id
 
     def _verify_transaction_indication(
-        self, expected_originating_id: Optional[TransactionId]
+        self, expected_originating_id: TransactionId | None
     ):
         self.cfdp_user.transaction_indication.assert_called_once()
         self.assertEqual(self.cfdp_user.transaction_indication.call_count, 1)
@@ -362,7 +363,7 @@ class TestCfdpSourceHandler(TestCase):
 
     def _state_checker(
         self,
-        fsm_res: Optional[FsmResult],
+        fsm_res: FsmResult | None,
         num_packets_ready: int,
         expected_state: CfdpState,
         expected_step: TransactionStep,
@@ -381,8 +382,7 @@ class TestCfdpSourceHandler(TestCase):
                     pdu_holder = self.source_handler.get_next_packet()
                     if pdu_holder is None:
                         break
-                    else:
-                        packets.append(pdu_holder.pdu)
+                    packets.append(pdu_holder.pdu)
                 raise AssertionError(f"Expected no packets, found: {packets}")
         if num_packets_ready > 0:
             self.assertTrue(self.source_handler.packets_ready)
@@ -412,8 +412,7 @@ class TestCfdpSourceHandler(TestCase):
         )
 
     def _generate_test_file(self) -> Path:
-        source_path = Path(f"{tempfile.gettempdir()}/hello.txt")
-        return source_path
+        return Path(f"{tempfile.gettempdir()}/hello.txt")
 
     def tearDown(self) -> None:
         pass

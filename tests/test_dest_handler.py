@@ -2,26 +2,9 @@ import dataclasses
 import os
 import tempfile
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import cast
 from unittest.mock import MagicMock
 
-from cfdppy import (
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
-)
-from cfdppy.defs import CfdpState
-from cfdppy.handler.dest import (
-    DestHandler,
-    FsmResult,
-    TransactionStep,
-)
-from cfdppy.user import (
-    FileSegmentRecvdParams,
-    MetadataRecvParams,
-    TransactionFinishedParams,
-)
 from pyfakefs.fake_filesystem_unittest import TestCase
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
@@ -54,6 +37,24 @@ from spacepackets.cfdp.tlv import (
     TlvList,
 )
 from spacepackets.util import ByteFieldU8, ByteFieldU16
+
+from cfdppy import (
+    IndicationCfg,
+    LocalEntityCfg,
+    RemoteEntityCfg,
+    RemoteEntityCfgTable,
+)
+from cfdppy.defs import CfdpState
+from cfdppy.handler.dest import (
+    DestHandler,
+    FsmResult,
+    TransactionStep,
+)
+from cfdppy.user import (
+    FileSegmentRecvdParams,
+    MetadataRecvParams,
+    TransactionFinishedParams,
+)
 
 from .cfdp_fault_handler_mock import FaultHandler
 from .cfdp_user_mock import CfdpUser
@@ -121,13 +122,14 @@ class TestDestHandlerBase(TestCase):
                 timeout_dest_entity_ms=self.timeout_check_limit_handling_ms
             ),
         )
-        self.src_file_path, self.dest_file_path = Path(
-            f"{tempfile.gettempdir()}/source"
-        ), Path(f"{tempfile.gettempdir()}/dest")
+        self.src_file_path, self.dest_file_path = (
+            Path(f"{tempfile.gettempdir()}/source"),
+            Path(f"{tempfile.gettempdir()}/dest"),
+        )
 
     def _state_checker(
         self,
-        fsm_res: Optional[FsmResult],
+        fsm_res: FsmResult | None,
         num_packets_ready: int,
         expected_state: CfdpState,
         expected_transaction: TransactionStep,
@@ -149,7 +151,7 @@ class TestDestHandlerBase(TestCase):
     def _generic_regular_transfer_init(
         self,
         file_size: int,
-        expected_msgs_to_user: Optional[List[MessageToUserTlv]] = None,
+        expected_msgs_to_user: list[MessageToUserTlv] | None = None,
     ):
         fsm_res = self._generic_transfer_init(
             file_size, 0, CfdpState.IDLE, TransactionStep.IDLE
@@ -175,7 +177,7 @@ class TestDestHandlerBase(TestCase):
         expected_init_packets: int,
         expected_init_state: CfdpState,
         expected_init_step: TransactionStep,
-        expected_originating_id: Optional[TransactionId] = None,
+        expected_originating_id: TransactionId | None = None,
     ) -> FsmResult:
         checksum_type = ChecksumType.NULL_CHECKSUM
         if file_size > 0:
@@ -205,7 +207,7 @@ class TestDestHandlerBase(TestCase):
         expected_packets: int = 0,
         expected_step: TransactionStep = TransactionStep.RECEIVING_FILE_DATA,
         check_indication: bool = True,
-        expected_progress: Optional[int] = None,
+        expected_progress: int | None = None,
     ) -> FsmResult:
         fd_params = FileDataParams(file_data=segment, offset=offset)
         file_data_pdu = FileDataPdu(params=fd_params, pdu_conf=self.src_pdu_conf)
@@ -277,7 +279,7 @@ class TestDestHandlerBase(TestCase):
         fsm_res: FsmResult,
         expected_condition_code: ConditionCode,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
-        expected_fault_location: Optional[EntityIdTlv] = None,
+        expected_fault_location: EntityIdTlv | None = None,
     ) -> FinishedPdu:
         return self._generic_finished_pdu_check(
             fsm_res,
@@ -321,7 +323,7 @@ class TestDestHandlerBase(TestCase):
         expected_step: TransactionStep,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
         expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
-        expected_fault_location: Optional[EntityIdTlv] = None,
+        expected_fault_location: EntityIdTlv | None = None,
     ) -> FinishedPdu:
         self._state_checker(fsm_res, 1, expected_state, expected_step)
         self.assertTrue(fsm_res.states.packets_ready)
@@ -345,13 +347,15 @@ class TestDestHandlerBase(TestCase):
     def _generic_verify_transfer_completion(
         self,
         fsm_res: FsmResult,
-        expected_file_data: Optional[bytes],
-        expected_finished_params: FinishedParams = FinishedParams(
-            condition_code=ConditionCode.NO_ERROR,
-            file_status=FileStatus.FILE_RETAINED,
-            delivery_code=DeliveryCode.DATA_COMPLETE,
-        ),
+        expected_file_data: bytes | None,
+        expected_finished_params: FinishedParams | None = None,
     ):
+        if expected_finished_params is None:
+            expected_finished_params = FinishedParams(
+                condition_code=ConditionCode.NO_ERROR,
+                file_status=FileStatus.FILE_RETAINED,
+                delivery_code=DeliveryCode.DATA_COMPLETE,
+            )
         self._generic_transfer_finished_indication_check(
             fsm_res, expected_finished_params
         )
@@ -400,9 +404,7 @@ class TestDestHandlerBase(TestCase):
             ).to_generic_msg_to_user_tlv(),
         ]
 
-    def _generate_metadata_only_metadata(
-        self, options: Optional[TlvList]
-    ) -> MetadataPdu:
+    def _generate_metadata_only_metadata(self, options: TlvList | None) -> MetadataPdu:
         metadata_params = MetadataParams(
             checksum_type=NULL_CHECKSUM_U32,
             closure_requested=self.closure_requested,

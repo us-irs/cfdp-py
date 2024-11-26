@@ -2,10 +2,9 @@
 import logging
 
 import cfdp
-from cfdp.transport.udp import UdpTransport
 from cfdp.filestore import NativeFileStore
+from cfdp.transport.udp import UdpTransport
 from common import REMOTE_ENTITY_ID, UDP_SERVER_PORT
-
 
 logging.basicConfig(level=logging.DEBUG)
 

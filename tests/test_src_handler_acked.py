@@ -1,13 +1,9 @@
-import os
 import random
-import sys
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import MagicMock
+from typing import TYPE_CHECKING
 
-from cfdppy.defs import CfdpState
-from cfdppy.handler.source import TransactionStep
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ConditionCode,
@@ -29,7 +25,13 @@ from spacepackets.cfdp.pdu import (
     TransactionStatus,
 )
 
+from cfdppy.defs import CfdpState
+from cfdppy.handler.source import TransactionStep
+
 from .test_src_handler import TestCfdpSourceHandler
+
+if TYPE_CHECKING:
+    from unittest.mock import MagicMock
 
 
 class TestSourceHandlerAcked(TestCfdpSourceHandler):
@@ -44,7 +46,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         transaction_id, _, _, eof_pdu = self._common_small_file_test(
             TransmissionMode.ACKNOWLEDGED,
             True,
-            "Hello World!".encode(),
+            b"Hello World!",
         )
         self._generic_acked_transfer_completion_full_success(transaction_id, eof_pdu)
 
@@ -69,7 +71,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         self._generic_acked_transfer_completion_full_success(transaction_id, eof_pdu)
 
     def test_missing_filedata_pdu_retransmission(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         transaction_id, _, first_fd_pdu, eof_pdu = self._common_small_file_test(
             TransmissionMode.ACKNOWLEDGED, True, file_content
         )
@@ -179,10 +181,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
 
     def test_large_missing_chunk_retransmission(self):
         # This tests generates three file data PDUs
-        if sys.version_info >= (3, 9):
-            rand_data = random.randbytes(self.file_segment_len * 3)
-        else:
-            rand_data = os.urandom(self.file_segment_len * 3)
+        rand_data = random.randbytes(self.file_segment_len * 3)
         crc32 = self._gen_crc32(rand_data)
         source_path = Path(f"{tempfile.gettempdir()}/rand-three-segs.bin")
         self._generate_file(source_path, rand_data)

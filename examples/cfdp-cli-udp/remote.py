@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 """This component simulates the remote component."""
+
 import argparse
 import logging
-import time
 import threading
+import time
 from logging import basicConfig
 from multiprocessing import Queue
 
-from cfdppy.handler.dest import DestHandler
-from cfdppy.handler.source import SourceHandler
-from cfdppy.mib import (
-    LocalEntityCfg,
-    RemoteEntityCfgTable,
-)
 from common import (
     INDICATION_CFG,
     REMOTE_CFG_OF_LOCAL_ENTITY,
@@ -26,6 +21,13 @@ from common import (
     UdpServer,
 )
 from spacepackets.seqcount import SeqCountProvider
+
+from cfdppy.handler.dest import DestHandler
+from cfdppy.handler.source import SourceHandler
+from cfdppy.mib import (
+    LocalEntityCfg,
+    RemoteEntityCfgTable,
+)
 
 _LOGGER = logging.getLogger(__name__)
 

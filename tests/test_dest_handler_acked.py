@@ -1,10 +1,6 @@
 import struct
 import time
-from typing import List, Tuple
 
-from cfdppy.defs import CfdpState
-from cfdppy.handler.dest import FsmResult, TransactionStep
-from cfdppy.user import MetadataRecvParams, TransactionFinishedParams
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ConditionCode,
@@ -24,6 +20,10 @@ from spacepackets.cfdp.pdu import (
 )
 from spacepackets.crc import mkPredefinedCrcFun
 
+from cfdppy.defs import CfdpState
+from cfdppy.handler.dest import FsmResult, TransactionStep
+from cfdppy.user import MetadataRecvParams, TransactionFinishedParams
+
 from .test_dest_handler import TestDestHandlerBase
 
 
@@ -39,11 +39,11 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_eof_ack_packet(fsm_res)
         fsm_res = self.dest_handler.state_machine()
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
-        self._generic_verify_transfer_completion(fsm_res, bytes())
+        self._generic_verify_transfer_completion(fsm_res, b"")
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_acked_small_file_transfer(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -60,7 +60,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_cancelled_file_transfer(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         # Basic acknowledged empty file transfer.
@@ -96,7 +96,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_deferred_missing_file_segment_handling(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -126,7 +126,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_immediate_missing_file_seg_handling_0(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -149,7 +149,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_immediate_missing_file_seg_handling_1(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -173,7 +173,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_immediate_multi_missing_segment_handling(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -201,7 +201,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_immediate_missing_segment_also_rerequested_after_eof(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -237,7 +237,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_multi_segment_missing_deferred_handling(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -287,7 +287,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def test_missing_metadata_pdu(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -351,7 +351,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK
         )
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
-        self._generic_verify_transfer_completion(fsm_res, bytes())
+        self._generic_verify_transfer_completion(fsm_res, b"")
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
     def _generic_deferred_lost_segment_handling_with_timeout(self, file_content: bytes):
@@ -393,7 +393,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         )
 
     def test_deferred_lost_segment_handling_after_timeout(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         self._generic_deferred_lost_segment_handling_with_timeout(file_content)
         time.sleep(self.timeout_nak_procedure_seconds * 1.1)
         fsm_res = self.dest_handler.state_machine()
@@ -405,7 +405,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         )
 
     def test_deferred_lost_segment_handling_after_timeout_activity_reset(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         self._generic_deferred_lost_segment_handling_with_timeout(file_content)
         # Insert one segment, which should reset the NAK activity parameters.
         self._insert_file_segment(
@@ -447,7 +447,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_eof_ack_packet(fsm_res)
         fsm_res = self.dest_handler.state_machine()
         self._generic_no_error_finished_pdu_check_acked(fsm_res)
-        self._generic_verify_transfer_completion(fsm_res, bytes())
+        self._generic_verify_transfer_completion(fsm_res, b"")
         time.sleep(self.timeout_positive_ack_procedure_seconds * 1.1)
         fsm_res = self.dest_handler.state_machine()
         self.assertEqual(self.dest_handler.positive_ack_counter, 1)
@@ -530,7 +530,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self,
         start_of_scope: int,
         end_of_scope: int,
-        segment_reqs: List[Tuple[int, int]],
+        segment_reqs: list[tuple[int, int]],
     ):
         next_pdu = self.dest_handler.get_next_packet()
         assert next_pdu is not None

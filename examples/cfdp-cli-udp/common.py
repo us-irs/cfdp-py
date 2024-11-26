@@ -3,32 +3,15 @@ import json
 import logging
 import select
 import socket
-import time
 import threading
+import time
 from datetime import timedelta
 from multiprocessing import Queue
 from pathlib import Path
 from queue import Empty
 from threading import Thread
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-from cfdppy import PacketDestination, PutRequest, get_packet_destination, CfdpState
-from cfdppy.exceptions import InvalidDestinationId, SourceFileDoesNotExist
-from cfdppy.handler import DestHandler, SourceHandler
-from cfdppy.mib import (
-    CheckTimerProvider,
-    DefaultFaultHandlerBase,
-    EntityType,
-    IndicationCfg,
-    RemoteEntityCfg,
-)
-from cfdppy.user import (
-    CfdpUserBase,
-    FileSegmentRecvdParams,
-    MetadataRecvParams,
-    TransactionFinishedParams,
-    TransactionParams,
-)
 from spacepackets.cfdp import (
     ChecksumType,
     ConditionCode,
@@ -46,6 +29,24 @@ from spacepackets.cfdp.tlv import (
 )
 from spacepackets.countdown import Countdown
 from spacepackets.util import ByteFieldU16, UnsignedByteField
+
+from cfdppy import CfdpState, PacketDestination, PutRequest, get_packet_destination
+from cfdppy.exceptions import InvalidDestinationId, SourceFileDoesNotExist
+from cfdppy.handler import DestHandler, SourceHandler
+from cfdppy.mib import (
+    CheckTimerProvider,
+    DefaultFaultHandlerBase,
+    EntityType,
+    IndicationCfg,
+    RemoteEntityCfg,
+)
+from cfdppy.user import (
+    CfdpUserBase,
+    FileSegmentRecvdParams,
+    MetadataRecvParams,
+    TransactionFinishedParams,
+    TransactionParams,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -118,8 +119,8 @@ class CfdpUser(CfdpUserBase):
         self.base_str = base_str
         self.put_req_queue = put_req_queue
         # This is a dictionary where the key is the current transaction ID for a transaction which
-        # was triggered by a proxy request with a originating ID.
-        self.active_proxy_put_reqs: Dict[TransactionId, TransactionId] = {}
+        # was triggered by a proxy request with an originating ID.
+        self.active_proxy_put_reqs: dict[TransactionId, TransactionId] = {}
         super().__init__()
 
     def transaction_indication(
@@ -136,7 +137,8 @@ class CfdpUser(CfdpUserBase):
             )
             self.active_proxy_put_reqs.update(
                 {
-                    transaction_indication_params.transaction_id: transaction_indication_params.originating_transaction_id
+                    transaction_indication_params.transaction_id:
+                        transaction_indication_params.originating_transaction_id
                 }
             )
 
@@ -184,7 +186,7 @@ class CfdpUser(CfdpUserBase):
             self._handle_msgs_to_user(params.transaction_id, params.msgs_to_user)
 
     def _handle_msgs_to_user(
-        self, transaction_id: TransactionId, msgs_to_user: List[MessageToUserTlv]
+        self, transaction_id: TransactionId, msgs_to_user: list[MessageToUserTlv]
     ):
         for msg_to_user in msgs_to_user:
             if msg_to_user.is_reserved_cfdp_message():
@@ -294,8 +296,8 @@ class UdpServer(Thread):
     def __init__(
         self,
         sleep_time: float,
-        addr: Tuple[str, int],
-        explicit_remote_addr: Optional[Tuple[str, int]],
+        addr: tuple[str, int],
+        explicit_remote_addr: tuple[str, int] | None,
         tx_queue: Queue,
         source_entity_rx_queue: Queue,
         dest_entity_rx_queue: Queue,
@@ -335,7 +337,7 @@ class UdpServer(Thread):
                 self.source_entity_queue.put(next_packet.pdu)
         self.send_packets()
 
-    def poll_next_udp_packet(self) -> Optional[PduHolder]:
+    def poll_next_udp_packet(self) -> PduHolder | None:
         ready = select.select([self.udp_socket], [], [], 0)
         if ready[0]:
             data, self.last_sender = self.udp_socket.recvfrom(4096)
@@ -429,7 +431,7 @@ class SourceEntityHandler(Thread):
             self.source_handler.reset()
 
     def _call_source_state_machine(
-        self, packet: Optional[AbstractFileDirectiveBase]
+        self, packet: AbstractFileDirectiveBase | None
     ) -> bool:
         """Returns whether a packet was sent."""
 
@@ -462,13 +464,17 @@ class SourceEntityHandler(Thread):
         while True:
             if self.stop_signal.is_set():
                 break
-            if self.source_handler.state == CfdpState.IDLE:
-                if not self._idle_handling():
-                    time.sleep(0.2)
-                    continue
-            if self.source_handler.state == CfdpState.BUSY:
-                if not self._busy_handling():
-                    time.sleep(0.2)
+            if (
+                self.source_handler.state == CfdpState.IDLE
+                and not self._idle_handling()
+            ):
+                time.sleep(0.2)
+                continue
+            if (
+                self.source_handler.state == CfdpState.BUSY
+                and not self._busy_handling()
+            ):
+                time.sleep(0.2)
 
 
 class DestEntityHandler(Thread):
@@ -522,12 +528,11 @@ class DestEntityHandler(Thread):
                 time.sleep(0.5)
 
 
-def parse_remote_addr_from_json(file_path: Path) -> Optional[str]:
+def parse_remote_addr_from_json(file_path: Path) -> str | None:
     try:
-        with open(file_path, "r") as file:
+        with open(file_path) as file:
             data = json.load(file)
-            remote_addr = data.get("remote_addr")
-            return remote_addr
+            return data.get("remote_addr")
     except FileNotFoundError:
         return None
     except json.JSONDecodeError:

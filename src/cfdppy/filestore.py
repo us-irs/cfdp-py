@@ -1,17 +1,17 @@
 import abc
 import logging
 import os
-import shutil
 import platform
+import shutil
 from pathlib import Path
-from typing import Optional, BinaryIO
+from typing import BinaryIO
 
-from cfdppy.crc import calc_modular_checksum
 from crcmod.predefined import PredefinedCrc
 from spacepackets.cfdp.defs import NULL_CHECKSUM_U32, ChecksumType
 from spacepackets.cfdp.tlv import FilestoreResponseStatusCode
-from cfdppy.exceptions import ChecksumNotImplemented
 
+from cfdppy.crc import calc_modular_checksum
+from cfdppy.exceptions import ChecksumNotImplemented
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ FilestoreResult = FilestoreResponseStatusCode
 
 class VirtualFilestore(abc.ABC):
     @abc.abstractmethod
-    def read_data(self, file: Path, offset: Optional[int], read_len: int) -> bytes:
+    def read_data(self, file: Path, offset: int | None, read_len: int) -> bytes:
         """This is not used as part of a filestore request, it is used to read a file, for example
         to send it"""
         raise NotImplementedError("Reading file not implemented in virtual filestore")
@@ -36,7 +36,7 @@ class VirtualFilestore(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def filename_from_full_path(self, path: Path) -> Optional[str]:
+    def filename_from_full_path(self, path: Path) -> str | None:
         pass
 
     @abc.abstractmethod
@@ -52,7 +52,7 @@ class VirtualFilestore(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def write_data(self, file: Path, data: bytes, offset: Optional[int]):
+    def write_data(self, file: Path, data: bytes, offset: int | None):
         """This is not used as part of a filestore request, it is used to build up the received
         file.
 
@@ -124,7 +124,6 @@ class VirtualFilestore(abc.ABC):
         FileNotFoundError
             File for checksum calculation does not exist
         """
-        pass
 
     def verify_checksum(
         self,
@@ -147,7 +146,7 @@ class NativeFilestore(VirtualFilestore):
         pass
 
     def read_data(
-        self, file: Path, offset: Optional[int], read_len: Optional[int] = None
+        self, file: Path, offset: int | None, read_len: int | None = None
     ) -> bytes:
         if not file.exists():
             raise FileNotFoundError(file)
@@ -175,7 +174,7 @@ class NativeFilestore(VirtualFilestore):
     def is_directory(self, path: Path) -> bool:
         return path.is_dir()
 
-    def filename_from_full_path(self, path: Path) -> Optional[str]:
+    def filename_from_full_path(self, path: Path) -> str | None:
         return path.name
 
     def truncate_file(self, file: Path):
@@ -184,7 +183,7 @@ class NativeFilestore(VirtualFilestore):
         with open(file, "w"):
             pass
 
-    def write_data(self, file: Path, data: bytes, offset: Optional[int]):
+    def write_data(self, file: Path, data: bytes, offset: int | None):
         """Primary function used to perform the CFDP Copy Procedure. This will also create a new
         file as long as no other file with the same name exists
 
@@ -204,8 +203,8 @@ class NativeFilestore(VirtualFilestore):
             _LOGGER.warning("File already exists")
             return FilestoreResponseStatusCode.CREATE_NOT_ALLOWED
         try:
-            file_handle = open(file, "x")
-            file_handle.close()
+            with open(file, "x"):
+                pass
             return FilestoreResponseStatusCode.CREATE_SUCCESS
         except OSError:
             _LOGGER.exception(f"Creating file {file} failed")
@@ -247,6 +246,7 @@ class NativeFilestore(VirtualFilestore):
                 FilestoreResponseStatusCode.REPLACE_FILE_NAME_TWO_REPLACE_SOURCE_NOT_EXIST
             )
         source_file.replace(replaced_file)
+        return None
 
     def remove_directory(
         self, dir_name: Path, recursive: bool = False
@@ -254,18 +254,18 @@ class NativeFilestore(VirtualFilestore):
         if not dir_name.exists():
             _LOGGER.warning(f"{dir_name} does not exist")
             return FilestoreResponseStatusCode.REMOVE_DIR_DOES_NOT_EXIST
-        elif not dir_name.is_dir():
+        if not dir_name.is_dir():
             _LOGGER.warning(f"{dir_name} is not a directory")
             return FilestoreResponseStatusCode.REMOVE_DIR_NOT_ALLOWED
         if recursive:
             shutil.rmtree(dir_name)
-        else:
-            try:
-                os.rmdir(dir_name)
-                return FilestoreResponseStatusCode.REMOVE_DIR_SUCCESS
-            except OSError:
-                _LOGGER.exception(f"Removing directory {dir_name} failed")
-                return FilestoreResponseStatusCode.RENAME_NOT_PERFORMED
+            return None
+        try:
+            os.rmdir(dir_name)
+            return FilestoreResponseStatusCode.REMOVE_DIR_SUCCESS
+        except OSError:
+            _LOGGER.exception(f"Removing directory {dir_name} failed")
+            return FilestoreResponseStatusCode.RENAME_NOT_PERFORMED
 
     def create_directory(self, dir_name: Path) -> FilestoreResponseStatusCode:
         if dir_name.exists():
@@ -284,10 +284,7 @@ class NativeFilestore(VirtualFilestore):
         :param recursive:
         :return:
         """
-        if target_file.exists():
-            open_flag = "a"
-        else:
-            open_flag = "w"
+        open_flag = "a" if target_file.exists() else "w"
         with open(target_file, open_flag) as of:
             if platform.system() == "Linux" or platform.system() == "Darwin":
                 cmd = "ls -al"
@@ -301,7 +298,9 @@ class NativeFilestore(VirtualFilestore):
             of.write(f"Contents of directory {dir_name} generated with '{cmd}':\n")
             curr_path = os.getcwd()
             os.chdir(dir_name)
-            os.system(f"{cmd} >> {target_file}")
+            os.system(  # noqa S605 TODO this is dangerous as the user has control over the target_file
+                f'{cmd} >> "{target_file}"'
+            )
             os.chdir(curr_path)
         return FilestoreResponseStatusCode.SUCCESS
 
@@ -312,10 +311,10 @@ class NativeFilestore(VirtualFilestore):
         ]:
             raise ChecksumNotImplemented(checksum_type)
 
-    def checksum_type_to_crcmod_str(self, checksum_type: ChecksumType) -> Optional[str]:
+    def checksum_type_to_crcmod_str(self, checksum_type: ChecksumType) -> str | None:
         if checksum_type == ChecksumType.CRC_32:
             return "crc32"
-        elif checksum_type == ChecksumType.CRC_32C:
+        if checksum_type == ChecksumType.CRC_32C:
             return "crc32c"
         raise ChecksumNotImplemented(checksum_type)
 

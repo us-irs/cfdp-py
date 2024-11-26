@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """This example shows a end-to-end transfer of a small file using the CFDP high level
 components provided by the tmtccmd package."""
+
 import argparse
 import copy
 import logging
@@ -16,11 +17,13 @@ from queue import Empty
 from typing import Any
 
 from spacepackets.cfdp import (
-    TransactionId,
     ChecksumType,
     ConditionCode,
+    TransactionId,
     TransmissionMode,
 )
+from spacepackets.countdown import Countdown
+from spacepackets.seqcount import SeqCountProvider
 from spacepackets.util import ByteFieldU16, UnsignedByteField
 
 from cfdppy import CfdpState
@@ -43,8 +46,6 @@ from cfdppy.user import (
     TransactionFinishedParams,
     TransactionParams,
 )
-from spacepackets.countdown import Countdown
-from spacepackets.seqcount import SeqCountProvider
 
 SOURCE_ENTITY_ID = ByteFieldU16(1)
 DEST_ENTITY_ID = ByteFieldU16(2)

@@ -1,7 +1,9 @@
 from datetime import timedelta
-from spacepackets.util import UnsignedByteField
-from cfdppy.mib import CheckTimerProvider, EntityType
+
 from spacepackets.countdown import Countdown
+from spacepackets.util import UnsignedByteField
+
+from cfdppy.mib import CheckTimerProvider, EntityType
 
 
 class CheckTimerProviderForTest(CheckTimerProvider):
@@ -19,5 +21,4 @@ class CheckTimerProviderForTest(CheckTimerProvider):
     ) -> Countdown:
         if entity_type == EntityType.RECEIVING:
             return Countdown(timedelta(milliseconds=self.timeout_dest_entity_ms))
-        else:
-            return Countdown(timedelta(milliseconds=self.timeout_src_entity_ms))
+        return Countdown(timedelta(milliseconds=self.timeout_src_entity_ms))

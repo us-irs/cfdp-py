@@ -1,14 +1,13 @@
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
 class _FileParamsBase:
     progress: int
     segment_len: int
-    crc32: Optional[bytes]
+    crc32: bytes | None
     metadata_only: bool
-    file_size: Optional[int]
+    file_size: int | None
 
     @classmethod
     def empty(cls):

@@ -1,14 +1,15 @@
 import logging
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import Any
 
 from spacepackets.cfdp.defs import ConditionCode, TransactionId
-from spacepackets.cfdp.tlv import MessageToUserTlv
 from spacepackets.cfdp.pdu.file_data import SegmentMetadata
 from spacepackets.cfdp.pdu.finished import FinishedParams
+from spacepackets.cfdp.tlv import MessageToUserTlv
 from spacepackets.util import UnsignedByteField
-from cfdppy.filestore import VirtualFilestore, NativeFilestore
+
+from cfdppy.filestore import NativeFilestore, VirtualFilestore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,24 +20,24 @@ class TransactionParams:
     makes the implementation of handling with proxy put requests easier."""
 
     transaction_id: TransactionId
-    originating_transaction_id: Optional[TransactionId] = None
+    originating_transaction_id: TransactionId | None = None
 
 
 @dataclass
 class MetadataRecvParams:
     transaction_id: TransactionId
     source_id: UnsignedByteField
-    file_size: Optional[int]
-    source_file_name: Optional[str]
-    dest_file_name: Optional[str]
-    msgs_to_user: Optional[List[MessageToUserTlv]] = None
+    file_size: int | None
+    source_file_name: str | None
+    dest_file_name: str | None
+    msgs_to_user: list[MessageToUserTlv] | None = None
 
 
 @dataclass
 class TransactionFinishedParams:
     transaction_id: TransactionId
     finished_params: FinishedParams
-    status_report: Optional[Any] = None
+    status_report: Any | None = None
 
 
 @dataclass
@@ -48,7 +49,7 @@ class FileSegmentRecvdParams:
     transaction_id: TransactionId
     offset: int
     length: int
-    segment_metadata: Optional[SegmentMetadata]
+    segment_metadata: SegmentMetadata | None
 
 
 class CfdpUserBase(ABC):
@@ -62,7 +63,7 @@ class CfdpUserBase(ABC):
     to provide custom indication handlers.
     """
 
-    def __init__(self, vfs: Optional[VirtualFilestore] = None):
+    def __init__(self, vfs: VirtualFilestore | None = None):
         if vfs is None:
             vfs = NativeFilestore()
         self.vfs = vfs

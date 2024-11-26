@@ -1,9 +1,10 @@
 import enum
 from pathlib import Path
-from spacepackets.util import UnsignedByteField
-from spacepackets.cfdp.defs import ChecksumType, Direction
+
 from spacepackets.cfdp import GenericPduPacket
+from spacepackets.cfdp.defs import ChecksumType, Direction
 from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
+from spacepackets.util import UnsignedByteField
 
 
 class NoRemoteEntityCfgFound(Exception):

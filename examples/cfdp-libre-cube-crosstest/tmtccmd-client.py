@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """This example shows a end-to-end transfer of a small file using the CFDP high level
 components provided by the tmtccmd package."""
+
 import argparse
 import logging
 import os
@@ -8,13 +9,26 @@ import select
 import socket
 import threading
 import time
-from typing import cast
 from dataclasses import dataclass
 from datetime import timedelta
 from logging import basicConfig
 from pathlib import Path
 from queue import Empty
-from typing import Any
+from typing import Any, cast
+
+from common import REMOTE_CFG_FOR_DEST_ENTITY, UDP_SERVER_PORT, UDP_TM_SERVER_PORT
+from common import REMOTE_ENTITY_ID as REMOTE_ENTITY_ID_RAW
+from common import SOURCE_ENTITY_ID as SOURCE_ENTITY_ID_RAW
+from spacepackets.cfdp import (
+    ConditionCode,
+    TransactionId,
+    TransmissionMode,
+)
+from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
+from spacepackets.cfdp.pdu.helper import PduFactory
+from spacepackets.countdown import Countdown
+from spacepackets.seqcount import SeqCountProvider
+from spacepackets.util import ByteFieldU16, UnsignedByteField
 
 from cfdppy import CfdpState
 from cfdppy.exceptions import InvalidSourceId
@@ -35,19 +49,6 @@ from cfdppy.user import (
     TransactionFinishedParams,
     TransactionParams,
 )
-from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
-from common import REMOTE_CFG_FOR_DEST_ENTITY, UDP_SERVER_PORT, UDP_TM_SERVER_PORT
-from common import REMOTE_ENTITY_ID as REMOTE_ENTITY_ID_RAW
-from common import SOURCE_ENTITY_ID as SOURCE_ENTITY_ID_RAW
-from spacepackets.cfdp import (
-    ConditionCode,
-    TransactionId,
-    TransmissionMode,
-)
-from spacepackets.cfdp.pdu.helper import PduFactory
-from spacepackets.countdown import Countdown
-from spacepackets.seqcount import SeqCountProvider
-from spacepackets.util import ByteFieldU16, UnsignedByteField
 
 SOURCE_ENTITY_ID = ByteFieldU16(SOURCE_ENTITY_ID_RAW)
 DEST_ENTITY_ID = ByteFieldU16(REMOTE_ENTITY_ID_RAW)

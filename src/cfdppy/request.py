@@ -1,17 +1,17 @@
+import dataclasses
 from pathlib import Path
-from typing import Optional, List, cast
+from typing import cast
 
 from spacepackets.cfdp import (
-    SegmentationControl,
-    TransmissionMode,
     FaultHandlerOverrideTlv,
+    FileStoreRequestTlv,
     FlowLabelTlv,
     MessageToUserTlv,
-    FileStoreRequestTlv,
+    SegmentationControl,
+    TransmissionMode,
 )
 from spacepackets.cfdp.tlv import ProxyMessageType, ReservedCfdpMessage
 from spacepackets.util import UnsignedByteField
-import dataclasses
 
 
 @dataclasses.dataclass
@@ -24,23 +24,21 @@ class PutRequest:
     destination_id: UnsignedByteField
     # All the following fields are optional because a put request can also be a metadata-only
     # request
-    source_file: Optional[Path]
-    dest_file: Optional[Path]
-    trans_mode: Optional[TransmissionMode]
-    closure_requested: Optional[bool]
-    seg_ctrl: Optional[SegmentationControl] = (
+    source_file: Path | None
+    dest_file: Path | None
+    trans_mode: TransmissionMode | None
+    closure_requested: bool | None
+    seg_ctrl: SegmentationControl | None = (
         SegmentationControl.NO_RECORD_BOUNDARIES_PRESERVATION
     )
-    fault_handler_overrides: Optional[List[FaultHandlerOverrideTlv]] = None
-    flow_label_tlv: Optional[FlowLabelTlv] = None
-    msgs_to_user: Optional[List[MessageToUserTlv]] = None
-    fs_requests: Optional[List[FileStoreRequestTlv]] = None
+    fault_handler_overrides: list[FaultHandlerOverrideTlv] | None = None
+    flow_label_tlv: FlowLabelTlv | None = None
+    msgs_to_user: list[MessageToUserTlv] | None = None
+    fs_requests: list[FileStoreRequestTlv] | None = None
 
     @property
     def metadata_only(self):
-        if self.source_file is None and self.dest_file is None:
-            return True
-        return False
+        return self.source_file is None and self.dest_file is None
 
     def __str__(self):
         src_file_str = "Unknown source file"
@@ -55,13 +53,13 @@ class PutRequest:
                 trans_mode_str = "Transmission Mode: Class 1 Unacknowledged"
         else:
             trans_mode_str = "Transmission Mode from MIB"
+        closure_str = "Closure Requested from MIB"
         if self.closure_requested is not None:
-            if self.closure_requested:
-                closure_str = "Closure requested"
-            else:
-                closure_str = "No closure requested"
-        else:
-            closure_str = "Closure Requested from MIB"
+            closure_str = (
+                "Closure requested"
+                if self.closure_requested
+                else "No closure requested"
+            )
         if not self.metadata_only:
             print_str = (
                 f"Destination ID {self.destination_id.value}\n\t"

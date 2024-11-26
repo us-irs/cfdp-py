@@ -5,34 +5,8 @@ import logging
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Deque, Optional, Tuple
+from typing import TYPE_CHECKING
 
-from cfdppy import (
-    CfdpUserBase,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-)
-from cfdppy.defs import CfdpState
-from cfdppy.exceptions import (
-    InvalidDestinationId,
-    InvalidNakPdu,
-    InvalidPduDirection,
-    InvalidPduForSourceHandler,
-    InvalidSourceId,
-    InvalidTransactionSeqNum,
-    NoRemoteEntityCfgFound,
-    PduIgnoredForSource,
-    PduIgnoredForSourceReason,
-    SourceFileDoesNotExist,
-    UnretrievedPdusToBeSent,
-)
-from cfdppy.handler.common import _PositiveAckProcedureParams
-from cfdppy.handler.defs import (
-    _FileParamsBase,
-)
-from cfdppy.mib import CheckTimerProvider, EntityType, RemoteEntityCfgTable
-from cfdppy.request import PutRequest
-from cfdppy.user import TransactionFinishedParams, TransactionParams
 from spacepackets.cfdp import (
     ConditionCode,
     CrcFlag,
@@ -66,8 +40,39 @@ from spacepackets.cfdp.pdu.file_data import (
 from spacepackets.cfdp.pdu.finished import FinishedParams
 from spacepackets.cfdp.tlv import ProxyMessageType
 from spacepackets.countdown import Countdown
-from spacepackets.seqcount import ProvidesSeqCount
 from spacepackets.util import ByteFieldGenerator, UnsignedByteField
+
+from cfdppy.defs import CfdpState
+from cfdppy.exceptions import (
+    InvalidDestinationId,
+    InvalidNakPdu,
+    InvalidPduDirection,
+    InvalidPduForSourceHandler,
+    InvalidSourceId,
+    InvalidTransactionSeqNum,
+    NoRemoteEntityCfgFound,
+    PduIgnoredForSource,
+    PduIgnoredForSourceReason,
+    SourceFileDoesNotExist,
+    UnretrievedPdusToBeSent,
+)
+from cfdppy.mib import CheckTimerProvider, EntityType, RemoteEntityCfgTable
+from cfdppy.user import TransactionFinishedParams, TransactionParams
+
+from .common import _PositiveAckProcedureParams
+from .defs import (
+    _FileParamsBase,
+)
+
+if TYPE_CHECKING:
+    from spacepackets.seqcount import ProvidesSeqCount
+
+    from cfdppy import (
+        CfdpUserBase,
+        LocalEntityCfg,
+        RemoteEntityCfg,
+    )
+    from cfdppy.request import PutRequest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,7 +102,7 @@ class _SourceFileParams(_FileParamsBase):
         return cls(
             progress=0,
             segment_len=0,
-            crc32=bytes(),
+            crc32=b"",
             file_size=0,
             empty_file=False,
             metadata_only=False,
@@ -125,23 +130,23 @@ class SourceStateWrapper:
 
 class _AckedModeParams:
     def __init__(self) -> None:
-        self.step_before_retransmission: Optional[TransactionStep] = None
-        self.segment_reqs_to_handle: Optional[Tuple[int, int]] = None
+        self.step_before_retransmission: TransactionStep | None = None
+        self.segment_reqs_to_handle: tuple[int, int] | None = None
         self.segment_req_index: int = 0
 
 
 class _TransferFieldWrapper:
     def __init__(self, local_entity_id: UnsignedByteField):
-        self.transaction_id: Optional[TransactionId] = None
-        self.check_timer: Optional[Countdown] = None
+        self.transaction_id: TransactionId | None = None
+        self.check_timer: Countdown | None = None
         self.positive_ack_params: _PositiveAckProcedureParams = (
             _PositiveAckProcedureParams()
         )
-        self.cond_code_eof: Optional[ConditionCode] = None
+        self.cond_code_eof: ConditionCode | None = None
         self.ack_params: _AckedModeParams = _AckedModeParams()
         self.fp: _SourceFileParams = _SourceFileParams.empty()
-        self.finished_params: Optional[FinishedParams] = None
-        self.remote_cfg: Optional[RemoteEntityCfg] = None
+        self.finished_params: FinishedParams | None = None
+        self.remote_cfg: RemoteEntityCfg | None = None
         self.closure_requested: bool = False
         self.pdu_conf = PduConfig.empty()
         self.pdu_conf.source_entity_id = local_entity_id
@@ -245,8 +250,8 @@ class SourceHandler:
         self.seq_num_provider = seq_num_provider
         self.check_timer_provider = check_timer_provider
         self._params = _TransferFieldWrapper(cfg.local_entity_id)
-        self._put_req: Optional[PutRequest] = None
-        self._pdus_to_be_sent: Deque[PduHolder] = deque()
+        self._put_req: PutRequest | None = None
+        self._pdus_to_be_sent: deque[PduHolder] = deque()
 
     @property
     def entity_id(self) -> UnsignedByteField:
@@ -270,7 +275,7 @@ class SourceHandler:
         return self._params.positive_ack_counter
 
     @property
-    def transmission_mode(self) -> Optional[TransmissionMode]:
+    def transmission_mode(self) -> TransmissionMode | None:
         if self.state == CfdpState.IDLE:
             return None
         return self._params.transmission_mode
@@ -292,10 +297,10 @@ class SourceHandler:
         return self._params.fp.progress
 
     @property
-    def file_size(self) -> Optional[int]:
+    def file_size(self) -> int | None:
         return self._params.fp.file_size
 
-    def get_put_request(self) -> Optional[PutRequest]:
+    def get_put_request(self) -> PutRequest | None:
         return self._put_req
 
     @property
@@ -355,7 +360,7 @@ class SourceHandler:
         return True
 
     def cancel_request(self, transaction_id: TransactionId) -> bool:
-        """This function models the Cancel.request CFDP primtive and is the recommended way
+        """This function models the Cancel.request CFDP primitive and is the recommended way
         to cancel a transaction. It will cause a Notice Of Cancellation at this entity.
         Please note that the state machine might still be active because a canceled transfer
         might still require some packets to be sent to the remote receiver entity.
@@ -370,7 +375,7 @@ class SourceHandler:
         if self.states.step == CfdpState.IDLE:
             return False
         if self.states.packets_ready:
-            raise UnretrievedPdusToBeSent()
+            raise UnretrievedPdusToBeSent
         if (
             self._params.transaction_id is not None
             and transaction_id == self._params.transaction_id
@@ -406,8 +411,8 @@ class SourceHandler:
         ]:
             raise InvalidPduForSourceHandler(packet)
         if self._params.transmission_mode == TransmissionMode.UNACKNOWLEDGED and (
-            packet.directive_type == DirectiveType.KEEP_ALIVE_PDU
-            or packet.directive_type == DirectiveType.NAK_PDU
+            packet.directive_type
+            in (DirectiveType.KEEP_ALIVE_PDU, DirectiveType.NAK_PDU)
         ):
             raise PduIgnoredForSource(
                 reason=PduIgnoredForSourceReason.ACK_MODE_PACKET_INVALID_MODE,
@@ -431,7 +436,7 @@ class SourceHandler:
                     ignored_packet=packet,
                 )
 
-    def get_next_packet(self) -> Optional[PduHolder]:
+    def get_next_packet(self) -> PduHolder | None:
         """Retrieve the next packet which should be sent to the remote CFDP destination entity."""
         if len(self._pdus_to_be_sent) == 0:
             return None
@@ -443,7 +448,7 @@ class SourceHandler:
         return self.state_machine(None)
 
     def state_machine(
-        self, packet: Optional[AbstractFileDirectiveBase] = None
+        self, packet: AbstractFileDirectiveBase | None = None
     ) -> FsmResult:
         """This is the primary state machine which performs the CFDP procedures like  PDU
         generation or CRC calculation. The packets generated by this finite-state machine (FSM)
@@ -484,7 +489,7 @@ class SourceHandler:
         return FsmResult(self.states)
 
     @property
-    def transaction_id(self) -> Optional[TransactionId]:
+    def transaction_id(self) -> TransactionId | None:
         return self._params.transaction_id
 
     def _reset_internal(self, clear_packet_queue: bool):
@@ -503,7 +508,7 @@ class SourceHandler:
         """
         self._reset_internal(True)
 
-    def _fsm_non_idle(self, packet: Optional[AbstractFileDirectiveBase]):
+    def _fsm_non_idle(self, packet: AbstractFileDirectiveBase | None):
         self._fsm_advancement_after_packets_were_sent()
         packet_holder = PduHolder(packet)
         if self._put_req is None:
@@ -516,9 +521,11 @@ class SourceHandler:
         if self.states.step == TransactionStep.SENDING_METADATA:
             self._prepare_metadata_pdu()
             return
-        if self.states.step == TransactionStep.SENDING_FILE_DATA:
-            if self._sending_file_data_fsm(packet_holder):
-                return
+        if (
+            self.states.step == TransactionStep.SENDING_FILE_DATA
+            and self._sending_file_data_fsm(packet_holder)
+        ):
+            return
         if self.states.step == TransactionStep.SENDING_EOF:
             self._prepare_eof_pdu(
                 self._checksum_calculation(self._params.fp.file_size),
@@ -545,7 +552,7 @@ class SourceHandler:
             TransactionParams(self._params.transaction_id, originating_transaction_id)
         )
 
-    def _check_for_originating_id(self) -> Optional[TransactionId]:
+    def _check_for_originating_id(self) -> TransactionId | None:
         """This function only returns an originating ID for if not proxy put response is
         contained in the message to user list. This special logic is in place to avoid permanent
         loop which would occur when the user uses the orignating ID to register active proxy put
@@ -651,16 +658,13 @@ class SourceHandler:
             # Funny name.
             params = self._prepare_metadata_base_params_with_metadata()
         if self._put_req.fs_requests is not None:
-            for fs_request in self._put_req.fs_requests:
-                options.append(fs_request)
+            options.extend(self._put_req.fs_requests)
         if self._put_req.fault_handler_overrides is not None:
-            for fh_override in self._put_req.fault_handler_overrides:
-                options.append(fh_override)
+            options.extend(self._put_req.fault_handler_overrides)
         if self._put_req.flow_label_tlv is not None:
             options.append(self._put_req.flow_label_tlv)
         if self._put_req.msgs_to_user is not None:
-            for msg_to_user in self._put_req.msgs_to_user:
-                options.append(msg_to_user)
+            options.extend(self._put_req.msgs_to_user)
         self._add_packet_to_be_sent(
             MetadataPdu(pdu_conf=self._params.pdu_conf, params=params, options=options)
         )
@@ -679,9 +683,11 @@ class SourceHandler:
         # This function returns whether the FSM should return or not.
         # During the PDU send phase, handle the re-transmission of missing files in
         # acknowledged mode.
-        if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
-            if self.__handle_retransmission(packet_holder):
-                return True
+        if (
+            self.transmission_mode == TransmissionMode.ACKNOWLEDGED
+            and self.__handle_retransmission(packet_holder)
+        ):
+            return True
 
         # No need to send a file data PDU for an empty file
         if (
@@ -716,7 +722,7 @@ class SourceHandler:
         self.states.step = TransactionStep.RETRANSMITTING
         return True
 
-    def _handle_segment_req(self, segment_req: Tuple[int, int]):
+    def _handle_segment_req(self, segment_req: tuple[int, int]):
         # Special case: Metadata PDU is re-requested
         if segment_req[0] == 0 and segment_req[1] == 0:
             # Re-transmit the metadata PDU
@@ -724,7 +730,7 @@ class SourceHandler:
         else:
             if segment_req[1] < segment_req[0]:
                 raise InvalidNakPdu("end offset larger than start offset")
-            elif segment_req[0] > self._params.fp.progress:
+            if segment_req[0] > self._params.fp.progress:
                 raise InvalidNakPdu("start offset larger than current file progress")
 
             missing_chunk_len = segment_req[1] - segment_req[0]
@@ -788,9 +794,11 @@ class SourceHandler:
             or packet_holder.pdu_directive_type is None
             or packet_holder.pdu_directive_type != DirectiveType.FINISHED_PDU
         ):
-            if self._params.check_timer is not None:
-                if self._params.check_timer.timed_out():
-                    self._declare_fault(ConditionCode.CHECK_LIMIT_REACHED)
+            if (
+                self._params.check_timer is not None
+                and self._params.check_timer.timed_out()
+            ):
+                self._declare_fault(ConditionCode.CHECK_LIMIT_REACHED)
             return
         finished_pdu = packet_holder.to_finished_pdu()
         self._params.finished_params = finished_pdu.finished_params
@@ -900,14 +908,13 @@ class SourceHandler:
         """
         if self._params.fp.file_size < self._params.fp.segment_len:
             read_len = self._params.fp.file_size
+        elif (
+            self._params.fp.progress + self._params.fp.segment_len
+            > self._params.fp.file_size
+        ):
+            read_len = self._params.fp.file_size - self._params.fp.progress
         else:
-            if (
-                self._params.fp.progress + self._params.fp.segment_len
-                > self._params.fp.file_size
-            ):
-                read_len = self._params.fp.file_size - self._params.fp.progress
-            else:
-                read_len = self._params.fp.segment_len
+            read_len = self._params.fp.segment_len
         self._prepare_file_data_pdu(self._params.fp.progress, read_len)
         self._params.fp.progress += read_len
 
