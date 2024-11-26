@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
 
 import enum
 import logging

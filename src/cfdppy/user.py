@@ -1,15 +1,18 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
-
-from spacepackets.cfdp.defs import ConditionCode, TransactionId
-from spacepackets.cfdp.pdu.file_data import SegmentMetadata
-from spacepackets.cfdp.pdu.finished import FinishedParams
-from spacepackets.cfdp.tlv import MessageToUserTlv
-from spacepackets.util import UnsignedByteField
+from typing import TYPE_CHECKING, Any
 
 from cfdppy.filestore import NativeFilestore, VirtualFilestore
+
+if TYPE_CHECKING:
+    from spacepackets.cfdp.defs import ConditionCode, TransactionId
+    from spacepackets.cfdp.pdu.file_data import SegmentMetadata
+    from spacepackets.cfdp.pdu.finished import FinishedParams
+    from spacepackets.cfdp.tlv import MessageToUserTlv
+    from spacepackets.util import UnsignedByteField
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,7 +116,7 @@ class CfdpUserBase(ABC):
 
     @abstractmethod
     def report_indication(
-        self, transaction_id: TransactionId, status_report: Any # noqa ANN401
+        self, transaction_id: TransactionId, status_report: Any  # noqa ANN401
     ) -> None:
         # TODO: p.28 of the CFDP standard specifies what information the status report parameter
         #       could contain. I think it would be better to not hardcode the type of the status

@@ -137,7 +137,7 @@ class CfdpUser(CfdpUserBase):
         )
 
     def report_indication(
-        self, transaction_id: TransactionId, status_report: Any # noqa ANN401
+        self, transaction_id: TransactionId, status_report: Any  # noqa ANN401
     ) -> None:
         # TODO: p.28 of the CFDP standard specifies what information the status report parameter
         #       could contain. I think it would be better to not hardcode the type of the status

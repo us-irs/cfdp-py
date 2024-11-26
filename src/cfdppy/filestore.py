@@ -1,10 +1,11 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import abc
 import logging
 import os
 import platform
 import shutil
-from pathlib import Path
-from typing import BinaryIO, NoReturn
+from typing import TYPE_CHECKING, BinaryIO, NoReturn
 
 from crcmod.predefined import PredefinedCrc
 from spacepackets.cfdp.defs import NULL_CHECKSUM_U32, ChecksumType
@@ -12,6 +13,9 @@ from spacepackets.cfdp.tlv import FilestoreResponseStatusCode
 
 from cfdppy.crc import calc_modular_checksum
 from cfdppy.exceptions import ChecksumNotImplemented
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 

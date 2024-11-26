@@ -1,3 +1,5 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import copy
 import tempfile
 from dataclasses import dataclass
@@ -134,7 +136,9 @@ class TestCfdpSourceHandler(TestCase):
         expected_checksum: bytes,
         expected_file_size: int,
     ) -> EofPdu:
-        self.assertEqual(self.source_handler.transaction_seq_num, transaction_id.seq_num)
+        self.assertEqual(
+            self.source_handler.transaction_seq_num, transaction_id.seq_num
+        )
         transmission_mode = self.source_handler.transmission_mode
         fsm_res = self.source_handler.state_machine_no_packet()
         if transmission_mode == TransmissionMode.UNACKNOWLEDGED:

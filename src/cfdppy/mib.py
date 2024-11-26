@@ -1,8 +1,10 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import abc
 import enum
 from abc import ABC
-from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from spacepackets.cfdp.defs import (
     CFDP_VERSION_2,
@@ -12,8 +14,12 @@ from spacepackets.cfdp.defs import (
     TransactionId,
     TransmissionMode,
 )
-from spacepackets.countdown import Countdown
-from spacepackets.util import UnsignedByteField
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from spacepackets.countdown import Countdown
+    from spacepackets.util import UnsignedByteField
 
 
 class DefaultFaultHandlerBase(ABC):
@@ -63,7 +69,7 @@ class DefaultFaultHandlerBase(ABC):
             ConditionCode.UNSUPPORTED_CHECKSUM_TYPE: FaultHandlerCode.IGNORE_ERROR,
         }
 
-    def get_fault_handler(self, condition: ConditionCode) -> FaultHandlerCode | None:
+    def get_fault_handler(self, condition: ConditionCode) -> FaultHandlerCode:
         return self._handler_dict.get(condition)
 
     def set_handler(self, condition: ConditionCode, handler: FaultHandlerCode) -> None:

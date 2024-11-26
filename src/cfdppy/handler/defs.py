@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 
@@ -10,7 +12,7 @@ class _FileParamsBase:
     file_size: int | None
 
     @classmethod
-    def empty(cls) -> "_FileParamsBase":
+    def empty(cls) -> _FileParamsBase:
         return cls(
             progress=0, segment_len=0, crc32=None, file_size=None, metadata_only=False
         )

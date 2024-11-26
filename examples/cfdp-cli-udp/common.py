@@ -1,3 +1,5 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import copy
 import json
 import logging
@@ -6,11 +8,10 @@ import socket
 import threading
 import time
 from datetime import timedelta
-from multiprocessing import Queue
 from pathlib import Path
 from queue import Empty
 from threading import Thread
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from spacepackets.cfdp import (
     ChecksumType,
@@ -32,7 +33,6 @@ from spacepackets.util import ByteFieldU16, UnsignedByteField
 
 from cfdppy import CfdpState, PacketDestination, PutRequest, get_packet_destination
 from cfdppy.exceptions import InvalidDestinationId, SourceFileDoesNotExist
-from cfdppy.handler import DestHandler, SourceHandler
 from cfdppy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
@@ -47,6 +47,11 @@ from cfdppy.user import (
     TransactionFinishedParams,
     TransactionParams,
 )
+
+if TYPE_CHECKING:
+    from multiprocessing import Queue
+
+    from cfdppy.handler import DestHandler, SourceHandler
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -245,7 +250,7 @@ class CfdpUser(CfdpUserBase):
         )
 
     def report_indication(
-        self, transaction_id: TransactionId, status_report: Any # noqa ANN401
+        self, transaction_id: TransactionId, status_report: Any  # noqa ANN401
     ) -> None:
         # TODO: p.28 of the CFDP standard specifies what information the status report parameter
         #       could contain. I think it would be better to not hardcode the type of the status

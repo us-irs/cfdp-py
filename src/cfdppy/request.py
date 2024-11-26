@@ -1,6 +1,7 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import dataclasses
-from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from spacepackets.cfdp import (
     FaultHandlerOverrideTlv,
@@ -11,7 +12,11 @@ from spacepackets.cfdp import (
     TransmissionMode,
 )
 from spacepackets.cfdp.tlv import ProxyMessageType, ReservedCfdpMessage
-from spacepackets.util import UnsignedByteField
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from spacepackets.util import UnsignedByteField
 
 
 @dataclasses.dataclass
