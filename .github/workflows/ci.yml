@@ -12,7 +12,7 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
@@ -31,7 +31,7 @@ jobs:
         sphinx-build -b doctest docs docs/_build
 
     - name: Lint with Ruff
-      uses: chartboost/ruff-action@v1
+      uses: astral-sh/ruff-action@v1
 
     - name: Run tests and generate coverage data
       run: |
@@ -39,7 +39,7 @@ jobs:
         coverage run -m pytest
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN  }}
         flags: unittests
