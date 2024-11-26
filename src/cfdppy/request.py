@@ -37,7 +37,7 @@ class PutRequest:
     fs_requests: list[FileStoreRequestTlv] | None = None
 
     @property
-    def metadata_only(self):
+    def metadata_only(self) -> bool:
         return self.source_file is None and self.dest_file is None
 
     def __str__(self):

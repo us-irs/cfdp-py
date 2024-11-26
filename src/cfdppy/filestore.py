@@ -246,7 +246,7 @@ class NativeFilestore(VirtualFilestore):
                 FilestoreResponseStatusCode.REPLACE_FILE_NAME_TWO_REPLACE_SOURCE_NOT_EXIST
             )
         source_file.replace(replaced_file)
-        return None
+        return FilestoreResponseStatusCode.SUCCESS
 
     def remove_directory(
         self, dir_name: Path, recursive: bool = False
@@ -259,7 +259,7 @@ class NativeFilestore(VirtualFilestore):
             return FilestoreResponseStatusCode.REMOVE_DIR_NOT_ALLOWED
         if recursive:
             shutil.rmtree(dir_name)
-            return None
+            return FilestoreResponseStatusCode.SUCCESS
         try:
             os.rmdir(dir_name)
             return FilestoreResponseStatusCode.REMOVE_DIR_SUCCESS

@@ -18,7 +18,7 @@ def get_packet_destination(packet: GenericPduPacket) -> PacketDestination:
     procedure.
 
     NOTE: The standard also specifies a direction flag, which could be used for that purpose as
-    well. However, I prefer the approach here to explicitely check the PDU types and event the ACK
+    well. However, I prefer the approach here to explicitly check the PDU types and event the ACK
     PDU content. I think this is more reliable than relying on that bit.
     """
     if packet.pdu_type == PduType.FILE_DATA:
