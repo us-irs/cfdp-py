@@ -305,19 +305,18 @@ def source_entity_handler(transfer_params: TransferParams, source_handler: Sourc
         trans_mode=transfer_params.transmission_mode,
         closure_requested=not transfer_params.no_closure,
     )
-    packet_received = False
     print(f"SRC HANDLER: Inserting Put Request: {put_request}")
     with open(SOURCE_FILE) as file:
         file_content = file.read()
         print(f"File content of source file {SOURCE_FILE}: {file_content}")
     assert source_handler.put_request(put_request)
-    packet = None
+
     while True:
+        packet = None
         try:
             # We are getting the packets from a Queue here, they could for example also be polled
             # from a network.
             packet = DEST_TO_SOURCE_QUEUE.get(False)
-            packet_received = True
         except Empty:
             pass
         fsm_result = source_handler.state_machine(packet)
@@ -332,7 +331,7 @@ def source_entity_handler(transfer_params: TransferParams, source_handler: Sourc
                 SOURCE_TO_DEST_QUEUE.put(next_pdu_wrapper.pdu)
                 packet_sent = True
         # If there is no work to do, put the thread to sleep.
-        if not packet_received and not packet_sent:
+        if packet is None and not packet_sent:
             time.sleep(0.5)
         # Transaction done
         if fsm_result.states.state == CfdpState.IDLE:
@@ -342,12 +341,10 @@ def source_entity_handler(transfer_params: TransferParams, source_handler: Sourc
 
 def dest_entity_handler(transfer_params: TransferParams, dest_handler: DestHandler) -> None:
     first_packet = True
-    packet_received = False
-    packet = None
     while True:
+        packet = None
         try:
             packet = SOURCE_TO_DEST_QUEUE.get(False)
-            packet_received = True
             if first_packet:
                 first_packet = False
         except Empty:
@@ -363,7 +360,7 @@ def dest_entity_handler(transfer_params: TransferParams, dest_handler: DestHandl
                 DEST_TO_SOURCE_QUEUE.put(next_pdu_wrapper.pdu)
                 packet_sent = True
         # If there is no work to do, put the thread to sleep.
-        if not packet_received and not packet_sent:
+        if packet is None and not packet_sent:
             time.sleep(0.5)
         # Transaction done
         if not first_packet and fsm_result.states.state == CfdpState.IDLE:
