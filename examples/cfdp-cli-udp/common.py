@@ -142,7 +142,7 @@ class CfdpUser(CfdpUserBase):
             )
             self.active_proxy_put_reqs.update(
                 {
-                    transaction_indication_params.transaction_id: transaction_indication_params.originating_transaction_id
+                    transaction_indication_params.transaction_id: transaction_indication_params.originating_transaction_id  # noqa: E501
                 }
             )
 
