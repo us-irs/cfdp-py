@@ -1,17 +1,18 @@
 import enum
 from pathlib import Path
-from spacepackets.util import UnsignedByteField
-from spacepackets.cfdp.defs import ChecksumType, Direction
+
 from spacepackets.cfdp import GenericPduPacket
+from spacepackets.cfdp.defs import ChecksumType, Direction
 from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
+from spacepackets.util import UnsignedByteField
 
 
 class NoRemoteEntityCfgFound(Exception):
-    def __init__(self, entity_id: UnsignedByteField, *args, **kwargs):
-        super().__init__(args, kwargs)
+    def __init__(self, entity_id: UnsignedByteField):
+        super().__init__()
         self.remote_entity_id = entity_id
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"No remote entity found for entity ID {self.remote_entity_id}"
 
 
@@ -44,9 +45,7 @@ class InvalidPduDirection(Exception):
     def __init__(self, expected_dir: Direction, found_dir: Direction):
         self.expected_dir = expected_dir
         self.found_dir = found_dir
-        super().__init__(
-            f"Expected direction {self.expected_dir!r}, got {self.found_dir!r}"
-        )
+        super().__init__(f"Expected direction {self.expected_dir!r}, got {self.found_dir!r}")
 
 
 class InvalidSourceId(Exception):
@@ -60,9 +59,7 @@ class InvalidSourceId(Exception):
     ):
         self.expected_src_id = expected_src_id
         self.found_src_id = found_src_id
-        super().__init__(
-            f"expected source {self.expected_src_id}, got {self.found_src_id}"
-        )
+        super().__init__(f"expected source {self.expected_src_id}, got {self.found_src_id}")
 
 
 class InvalidDestinationId(Exception):
@@ -76,18 +73,14 @@ class InvalidDestinationId(Exception):
     ):
         self.expected_dest_id = expected_dest_id
         self.found_dest_id = found_dest_id
-        super().__init__(
-            f"expected destination {self.expected_dest_id}, got {self.found_dest_id}"
-        )
+        super().__init__(f"expected destination {self.expected_dest_id}, got {self.found_dest_id}")
 
 
 class InvalidTransactionSeqNum(Exception):
     def __init__(self, expected: UnsignedByteField, received: UnsignedByteField):
         self.expected = expected
         self.received = received
-        super().__init__(
-            f"expected sequence number {expected}, reiceved {self.received}"
-        )
+        super().__init__(f"expected sequence number {expected}, reiceved {self.received}")
 
 
 class BusyError(Exception):
@@ -137,9 +130,7 @@ class PduIgnoredForDestReason(enum.IntEnum):
 
 
 class PduIgnoredForDest(Exception):
-    def __init__(
-        self, reason: PduIgnoredForDestReason, ignored_packet: GenericPduPacket
-    ):
+    def __init__(self, reason: PduIgnoredForDestReason, ignored_packet: GenericPduPacket):
         self.ignored_packet = ignored_packet
         self.reason = reason
         super().__init__(f"ignored PDU packet at destination handler: {reason!r}")

@@ -11,9 +11,7 @@ def calc_modular_checksum(file_path: Path) -> bytes:
             data = file.read(4)
             if not data:
                 break
-            checksum += int.from_bytes(
-                data.ljust(4, b"\0"), byteorder="big", signed=False
-            )
+            checksum += int.from_bytes(data.ljust(4, b"\0"), byteorder="big", signed=False)
 
     checksum %= 2**32
     return struct.pack("!I", checksum)

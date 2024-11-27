@@ -1,11 +1,14 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import enum
 from dataclasses import dataclass
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from spacepackets.cfdp import DirectiveType, GenericPduPacket, PduType
 from spacepackets.cfdp.pdu import PduHolder
 
-from spacepackets.countdown import Countdown
+if TYPE_CHECKING:
+    from spacepackets.countdown import Countdown
 
 
 class PacketDestination(enum.Enum):
@@ -20,7 +23,7 @@ def get_packet_destination(packet: GenericPduPacket) -> PacketDestination:
     procedure.
 
     NOTE: The standard also specifies a direction flag, which could be used for that purpose as
-    well. However, I prefer the approach here to explicitely check the PDU types and event the ACK
+    well. However, I prefer the approach here to explicitly check the PDU types and event the ACK
     PDU content. I think this is more reliable than relying on that bit.
     """
     if packet.pdu_type == PduType.FILE_DATA:
@@ -33,7 +36,7 @@ def get_packet_destination(packet: GenericPduPacket) -> PacketDestination:
         # Section b) of 4.5.3: These PDUs should always be targeted towards the file
         # receiver a.k.a. the destination handler
         return PacketDestination.DEST_HANDLER
-    elif packet.directive_type in [  # type: ignore
+    if packet.directive_type in [  # type: ignore
         DirectiveType.FINISHED_PDU,
         DirectiveType.NAK_PDU,
         DirectiveType.KEEP_ALIVE_PDU,
@@ -41,7 +44,7 @@ def get_packet_destination(packet: GenericPduPacket) -> PacketDestination:
         # Section c) of 4.5.3: These PDUs should always be targeted towards the file sender
         # a.k.a. the source handler
         return PacketDestination.SOURCE_HANDLER
-    elif packet.directive_type == DirectiveType.ACK_PDU:  # type: ignore
+    if packet.directive_type == DirectiveType.ACK_PDU:  # type: ignore
         # Section a): Recipient depends on the type of PDU that is being acknowledged.
         # We can simply extract the PDU type from the raw stream. If it is an EOF PDU,
         # this packet is passed to the source handler. For a finished PDU, it is
@@ -50,12 +53,12 @@ def get_packet_destination(packet: GenericPduPacket) -> PacketDestination:
         ack_pdu = pdu_holder.to_ack_pdu()
         if ack_pdu.directive_code_of_acked_pdu == DirectiveType.EOF_PDU:
             return PacketDestination.SOURCE_HANDLER
-        elif ack_pdu.directive_code_of_acked_pdu == DirectiveType.FINISHED_PDU:
+        if ack_pdu.directive_code_of_acked_pdu == DirectiveType.FINISHED_PDU:
             return PacketDestination.DEST_HANDLER
     raise ValueError(f"unexpected directive type {packet.directive_type}")  # type: ignore
 
 
 @dataclass
 class _PositiveAckProcedureParams:
-    ack_timer: Optional[Countdown] = None
+    ack_timer: Countdown | None = None
     ack_counter: int = 0

@@ -1,4 +1,5 @@
 from spacepackets.cfdp import ConditionCode
+
 from cfdppy import CfdpUserBase, TransactionId
 from cfdppy.user import (
     FileSegmentRecvdParams,
@@ -21,9 +22,7 @@ class CfdpUser(CfdpUserBase):
     def eof_sent_indication(self, transaction_id: TransactionId):
         pass
 
-    def abandon_indication(
-        self, transaction_id: int, cond_code: ConditionCode, progress: int
-    ):
+    def abandon_indication(self, transaction_id: int, cond_code: ConditionCode, progress: int):
         pass
 
     def metadata_recv_indication(self, params: MetadataRecvParams):
@@ -35,9 +34,7 @@ class CfdpUser(CfdpUserBase):
     def report_indication(self, transaction_id: TransactionId, status_report: any):
         pass
 
-    def suspended_indication(
-        self, transaction_id: TransactionId, cond_code: ConditionCode
-    ):
+    def suspended_indication(self, transaction_id: TransactionId, cond_code: ConditionCode):
         pass
 
     def resumed_indication(self, transaction_id: TransactionId, progress: int):

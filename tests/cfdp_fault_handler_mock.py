@@ -1,6 +1,7 @@
 from spacepackets.cfdp import ConditionCode
-from cfdppy.mib import DefaultFaultHandlerBase
+
 from cfdppy import TransactionId
+from cfdppy.mib import DefaultFaultHandlerBase
 
 
 class FaultHandler(DefaultFaultHandlerBase):
@@ -17,12 +18,8 @@ class FaultHandler(DefaultFaultHandlerBase):
     ):
         pass
 
-    def abandoned_cb(
-        self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    def abandoned_cb(self, transaction_id: TransactionId, cond: ConditionCode, progress: int):
         pass
 
-    def ignore_cb(
-        self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    def ignore_cb(self, transaction_id: TransactionId, cond: ConditionCode, progress: int):
         pass

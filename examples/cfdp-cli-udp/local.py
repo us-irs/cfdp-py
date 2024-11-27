@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """This component simulates the local component."""
+
 import argparse
-import time
-import logging
 import ipaddress
+import logging
 import threading
+import time
 from logging import basicConfig
 from multiprocessing import Queue
 from pathlib import Path
 
-
 from common import (
     INDICATION_CFG,
     LOCAL_ENTITY_ID,
-    REMOTE_ENTITY_ID,
-    REMOTE_CFG_OF_REMOTE_ENTITY,
     LOCAL_PORT,
+    REMOTE_CFG_OF_REMOTE_ENTITY,
+    REMOTE_ENTITY_ID,
     REMOTE_PORT,
     CfdpFaultHandler,
     CfdpUser,
@@ -25,6 +25,13 @@ from common import (
     UdpServer,
     parse_remote_addr_from_json,
 )
+from spacepackets.seqcount import SeqCountProvider
+from tmtccmd.config.args import (
+    CfdpParams,
+    add_cfdp_procedure_arguments,
+    cfdp_args_to_cfdp_params,
+)
+from tmtccmd.config.cfdp import generic_cfdp_params_to_put_request
 
 from cfdppy.handler.dest import DestHandler
 from cfdppy.handler.source import SourceHandler
@@ -32,13 +39,6 @@ from cfdppy.mib import (
     LocalEntityCfg,
     RemoteEntityCfgTable,
 )
-from tmtccmd.config.args import (
-    add_cfdp_procedure_arguments,
-    cfdp_args_to_cfdp_params,
-    CfdpParams,
-)
-from tmtccmd.config.cfdp import generic_cfdp_params_to_put_request
-from spacepackets.seqcount import SeqCountProvider
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ DEST_ENTITY_QUEUE = Queue()
 TM_QUEUE = Queue()
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(prog="CFDP Local Entity Application")
     parser.add_argument("-v", "--verbose", action="count", default=0)
     add_cfdp_procedure_arguments(parser)

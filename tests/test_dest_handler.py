@@ -1,27 +1,12 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import dataclasses
 import os
 import tempfile
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import cast
 from unittest.mock import MagicMock
 
-from cfdppy import (
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
-)
-from cfdppy.defs import CfdpState
-from cfdppy.handler.dest import (
-    DestHandler,
-    FsmResult,
-    TransactionStep,
-)
-from cfdppy.user import (
-    FileSegmentRecvdParams,
-    MetadataRecvParams,
-    TransactionFinishedParams,
-)
 from pyfakefs.fake_filesystem_unittest import TestCase
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
@@ -55,6 +40,24 @@ from spacepackets.cfdp.tlv import (
 )
 from spacepackets.util import ByteFieldU8, ByteFieldU16
 
+from cfdppy import (
+    IndicationCfg,
+    LocalEntityCfg,
+    RemoteEntityCfg,
+    RemoteEntityCfgTable,
+)
+from cfdppy.defs import CfdpState
+from cfdppy.handler.dest import (
+    DestHandler,
+    FsmResult,
+    TransactionStep,
+)
+from cfdppy.user import (
+    FileSegmentRecvdParams,
+    MetadataRecvParams,
+    TransactionFinishedParams,
+)
+
 from .cfdp_fault_handler_mock import FaultHandler
 from .cfdp_user_mock import CfdpUser
 from .common import CheckTimerProviderForTest
@@ -74,9 +77,7 @@ class TestDestHandlerBase(TestCase):
         self.fault_handler = FaultHandler()
         self.fault_handler.notice_of_cancellation_cb = MagicMock()
         self.entity_id = ByteFieldU16(2)
-        self.local_cfg = LocalEntityCfg(
-            self.entity_id, self.indication_cfg, self.fault_handler
-        )
+        self.local_cfg = LocalEntityCfg(self.entity_id, self.indication_cfg, self.fault_handler)
         self.src_entity_id = ByteFieldU16(1)
         self.src_pdu_conf = PduConfig(
             source_entity_id=self.src_entity_id,
@@ -117,17 +118,16 @@ class TestDestHandlerBase(TestCase):
             self.local_cfg,
             self.cfdp_user,
             self.remote_cfg_table,
-            CheckTimerProviderForTest(
-                timeout_dest_entity_ms=self.timeout_check_limit_handling_ms
-            ),
+            CheckTimerProviderForTest(timeout_dest_entity_ms=self.timeout_check_limit_handling_ms),
         )
-        self.src_file_path, self.dest_file_path = Path(
-            f"{tempfile.gettempdir()}/source"
-        ), Path(f"{tempfile.gettempdir()}/dest")
+        self.src_file_path, self.dest_file_path = (
+            Path(f"{tempfile.gettempdir()}/source"),
+            Path(f"{tempfile.gettempdir()}/dest"),
+        )
 
     def _state_checker(
         self,
-        fsm_res: Optional[FsmResult],
+        fsm_res: FsmResult | None,
         num_packets_ready: int,
         expected_state: CfdpState,
         expected_transaction: TransactionStep,
@@ -149,14 +149,10 @@ class TestDestHandlerBase(TestCase):
     def _generic_regular_transfer_init(
         self,
         file_size: int,
-        expected_msgs_to_user: Optional[List[MessageToUserTlv]] = None,
+        expected_msgs_to_user: list[MessageToUserTlv] | None = None,
     ):
-        fsm_res = self._generic_transfer_init(
-            file_size, 0, CfdpState.IDLE, TransactionStep.IDLE
-        )
-        self._state_checker(
-            fsm_res, 0, CfdpState.BUSY, TransactionStep.RECEIVING_FILE_DATA
-        )
+        fsm_res = self._generic_transfer_init(file_size, 0, CfdpState.IDLE, TransactionStep.IDLE)
+        self._state_checker(fsm_res, 0, CfdpState.BUSY, TransactionStep.RECEIVING_FILE_DATA)
         self.cfdp_user.metadata_recv_indication.assert_called_once()
         self.cfdp_user.metadata_recv_indication.assert_called_with(
             MetadataRecvParams(
@@ -175,7 +171,7 @@ class TestDestHandlerBase(TestCase):
         expected_init_packets: int,
         expected_init_state: CfdpState,
         expected_init_step: TransactionStep,
-        expected_originating_id: Optional[TransactionId] = None,
+        expected_originating_id: TransactionId | None = None,
     ) -> FsmResult:
         checksum_type = ChecksumType.NULL_CHECKSUM
         if file_size > 0:
@@ -187,12 +183,8 @@ class TestDestHandlerBase(TestCase):
             dest_file_name=self.dest_file_path.as_posix(),
             file_size=file_size,
         )
-        file_transfer_init = MetadataPdu(
-            params=metadata_params, pdu_conf=self.src_pdu_conf
-        )
-        self._state_checker(
-            None, expected_init_packets, expected_init_state, expected_init_step
-        )
+        file_transfer_init = MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf)
+        self._state_checker(None, expected_init_packets, expected_init_state, expected_init_step)
         self.assertEqual(self.dest_handler.file_size, None)
         fsm_res = self.dest_handler.state_machine(file_transfer_init)
         self.assertEqual(self.dest_handler.file_size, file_size)
@@ -205,7 +197,7 @@ class TestDestHandlerBase(TestCase):
         expected_packets: int = 0,
         expected_step: TransactionStep = TransactionStep.RECEIVING_FILE_DATA,
         check_indication: bool = True,
-        expected_progress: Optional[int] = None,
+        expected_progress: int | None = None,
     ) -> FsmResult:
         fd_params = FileDataParams(file_data=segment, offset=offset)
         file_data_pdu = FileDataPdu(params=fd_params, pdu_conf=self.src_pdu_conf)
@@ -214,10 +206,7 @@ class TestDestHandlerBase(TestCase):
             self.assertEqual(self.dest_handler.progress, offset + len(segment))
         else:
             self.assertEqual(self.dest_handler.progress, expected_progress)
-        if (
-            self.indication_cfg.file_segment_recvd_indication_required
-            and check_indication
-        ):
+        if self.indication_cfg.file_segment_recvd_indication_required and check_indication:
             self.cfdp_user.file_segment_recv_indication.assert_called_once()
             self.assertEqual(self.cfdp_user.file_segment_recv_indication.call_count, 1)
             seg_recv_params = cast(
@@ -235,9 +224,7 @@ class TestDestHandlerBase(TestCase):
         return fsm_res
 
     def _generic_insert_eof_pdu(self, file_size: int, checksum: bytes) -> FsmResult:
-        eof_pdu = EofPdu(
-            file_size=file_size, file_checksum=checksum, pdu_conf=self.src_pdu_conf
-        )
+        eof_pdu = EofPdu(file_size=file_size, file_checksum=checksum, pdu_conf=self.src_pdu_conf)
         fsm_res = self.dest_handler.state_machine(eof_pdu)
         if self.expected_mode == TransmissionMode.UNACKNOWLEDGED:
             if self.closure_requested:
@@ -253,9 +240,7 @@ class TestDestHandlerBase(TestCase):
 
     def _generic_eof_recv_indication_check(self, fsm_res: FsmResult):
         self.cfdp_user.eof_recv_indication.assert_called_once()
-        self.assertEqual(
-            self.cfdp_user.eof_recv_indication.call_args.args[0], self.transaction_id
-        )
+        self.assertEqual(self.cfdp_user.eof_recv_indication.call_args.args[0], self.transaction_id)
         self.assertEqual(fsm_res.states.transaction_id, self.transaction_id)
 
     def _generic_no_error_finished_pdu_check_and_done_check(
@@ -277,7 +262,7 @@ class TestDestHandlerBase(TestCase):
         fsm_res: FsmResult,
         expected_condition_code: ConditionCode,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
-        expected_fault_location: Optional[EntityIdTlv] = None,
+        expected_fault_location: EntityIdTlv | None = None,
     ) -> FinishedPdu:
         return self._generic_finished_pdu_check(
             fsm_res,
@@ -321,7 +306,7 @@ class TestDestHandlerBase(TestCase):
         expected_step: TransactionStep,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
         expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
-        expected_fault_location: Optional[EntityIdTlv] = None,
+        expected_fault_location: EntityIdTlv | None = None,
     ) -> FinishedPdu:
         self._state_checker(fsm_res, 1, expected_state, expected_step)
         self.assertTrue(fsm_res.states.packets_ready)
@@ -345,21 +330,19 @@ class TestDestHandlerBase(TestCase):
     def _generic_verify_transfer_completion(
         self,
         fsm_res: FsmResult,
-        expected_file_data: Optional[bytes],
-        expected_finished_params: FinishedParams = FinishedParams(
-            condition_code=ConditionCode.NO_ERROR,
-            file_status=FileStatus.FILE_RETAINED,
-            delivery_code=DeliveryCode.DATA_COMPLETE,
-        ),
+        expected_file_data: bytes | None,
+        expected_finished_params: FinishedParams | None = None,
     ):
-        self._generic_transfer_finished_indication_check(
-            fsm_res, expected_finished_params
-        )
+        if expected_finished_params is None:
+            expected_finished_params = FinishedParams(
+                condition_code=ConditionCode.NO_ERROR,
+                file_status=FileStatus.FILE_RETAINED,
+                delivery_code=DeliveryCode.DATA_COMPLETE,
+            )
+        self._generic_transfer_finished_indication_check(fsm_res, expected_finished_params)
         if expected_file_data is not None:
             self.assertTrue(self.dest_file_path.exists())
-            self.assertEqual(
-                self.dest_file_path.stat().st_size, len(expected_file_data)
-            )
+            self.assertEqual(self.dest_file_path.stat().st_size, len(expected_file_data))
             with open(self.dest_file_path, "rb") as file:
                 self.assertEqual(expected_file_data, file.read())
         fsm_res = self.dest_handler.state_machine()
@@ -378,13 +361,9 @@ class TestDestHandlerBase(TestCase):
             TransactionFinishedParams,
             self.cfdp_user.transaction_finished_indication.call_args.args[0],
         )
-        self.assertEqual(
-            finished_params_from_callback.transaction_id, self.transaction_id
-        )
+        self.assertEqual(finished_params_from_callback.transaction_id, self.transaction_id)
         self.assertEqual(fsm_res.states.transaction_id, self.transaction_id)
-        self.assertEqual(
-            finished_params_from_callback.finished_params, expected_finished_params
-        )
+        self.assertEqual(finished_params_from_callback.finished_params, expected_finished_params)
 
     def _generate_put_response_opts(self) -> TlvList:
         return [
@@ -400,9 +379,7 @@ class TestDestHandlerBase(TestCase):
             ).to_generic_msg_to_user_tlv(),
         ]
 
-    def _generate_metadata_only_metadata(
-        self, options: Optional[TlvList]
-    ) -> MetadataPdu:
+    def _generate_metadata_only_metadata(self, options: TlvList | None) -> MetadataPdu:
         metadata_params = MetadataParams(
             checksum_type=NULL_CHECKSUM_U32,
             closure_requested=self.closure_requested,
@@ -410,9 +387,7 @@ class TestDestHandlerBase(TestCase):
             dest_file_name=None,
             file_size=0,
         )
-        return MetadataPdu(
-            params=metadata_params, pdu_conf=self.src_pdu_conf, options=options
-        )
+        return MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf, options=options)
 
     def tearDown(self) -> None:
         if self.dest_file_path.exists():

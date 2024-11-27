@@ -1,11 +1,12 @@
 import os.path
-from pathlib import Path
-import tempfile
 import struct
+import tempfile
+from pathlib import Path
+
+from pyfakefs.fake_filesystem_unittest import TestCase
 
 from cfdppy.crc import calc_modular_checksum
-from pyfakefs.fake_filesystem_unittest import TestCase
-from cfdppy.filestore import NativeFilestore, FilestoreResult
+from cfdppy.filestore import FilestoreResult, NativeFilestore
 
 EXAMPLE_DATA_CFDP = bytes(
     [
@@ -97,14 +98,14 @@ class TestCfdpHostFilestore(TestCase):
         self.assertTrue(res == FilestoreResult.REMOVE_DIR_SUCCESS)
 
     def test_read_file(self):
-        file_data = "Hello World".encode()
+        file_data = b"Hello World"
         with open(self.test_file_name_0, "wb") as of:
             of.write(file_data)
         data = self.filestore.read_data(self.test_file_name_0, 0)
         self.assertEqual(data, file_data)
 
     def test_read_opened_file(self):
-        file_data = "Hello World".encode()
+        file_data = b"Hello World"
         with open(self.test_file_name_0, "wb") as of:
             of.write(file_data)
         with open(self.test_file_name_0, "rb") as rf:
@@ -112,14 +113,14 @@ class TestCfdpHostFilestore(TestCase):
             self.assertEqual(data, file_data)
 
     def test_write_file(self):
-        file_data = "Hello World".encode()
+        file_data = b"Hello World"
         self.filestore.create_file(self.test_file_name_0)
         self.filestore.write_data(self.test_file_name_0, file_data, 0)
         with open(self.test_file_name_0, "rb") as rf:
             self.assertEqual(rf.read(), file_data)
 
     def test_replace_file(self):
-        file_data = "Hello World".encode()
+        file_data = b"Hello World"
         self.filestore.create_file(self.test_file_name_0)
         self.filestore.write_data(self.test_file_name_0, file_data, 0)
         with open(self.test_file_name_1, "w"):
@@ -133,15 +134,11 @@ class TestCfdpHostFilestore(TestCase):
         if os.path.exists(self.test_list_dir_name):
             os.remove(self.test_list_dir_name)
         # Do not delete, user can check file content now
-        res = filestore.list_directory(
-            dir_name=tempdir, target_file=self.test_list_dir_name
-        )
+        res = filestore.list_directory(dir_name=tempdir, target_file=self.test_list_dir_name)
         self.assertTrue(res == FilestoreResult.SUCCESS)
 
     def test_modular_checksum(self):
-        self.assertEqual(
-            calc_modular_checksum(self.file_path), self.expected_checksum_for_example
-        )
+        self.assertEqual(calc_modular_checksum(self.file_path), self.expected_checksum_for_example)
 
     def tearDown(self):
         if self.file_path.exists():

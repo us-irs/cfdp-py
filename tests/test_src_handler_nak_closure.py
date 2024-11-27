@@ -1,18 +1,8 @@
-import os
 import random
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from cfdppy import PutRequest
-from cfdppy.defs import CfdpState
-from cfdppy.exceptions import (
-    InvalidDestinationId,
-    InvalidPduDirection,
-    InvalidSourceId,
-)
-from cfdppy.handler.source import TransactionStep
 from spacepackets.cfdp import (
     ConditionCode,
     Direction,
@@ -27,6 +17,15 @@ from spacepackets.util import (
     ByteFieldU8,
     ByteFieldU16,
 )
+
+from cfdppy import PutRequest
+from cfdppy.defs import CfdpState
+from cfdppy.exceptions import (
+    InvalidDestinationId,
+    InvalidPduDirection,
+    InvalidSourceId,
+)
+from cfdppy.handler.source import TransactionStep
 
 from .test_src_handler import TestCfdpSourceHandler
 
@@ -52,9 +51,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         self._state_checker(fsm_res, False, CfdpState.IDLE, TransactionStep.IDLE)
 
     def test_empty_file_pdu_generation_nacked_explicitely(self):
-        self.default_remote_cfg.default_transmission_mode = (
-            TransmissionMode.ACKNOWLEDGED
-        )
+        self.default_remote_cfg.default_transmission_mode = TransmissionMode.ACKNOWLEDGED
         transaction_id, metadata_pdu, _ = self._common_empty_file_test(
             TransmissionMode.UNACKNOWLEDGED
         )
@@ -73,7 +70,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         self._state_checker(fsm_res, False, CfdpState.IDLE, TransactionStep.IDLE)
 
     def test_small_file_pdu_generation(self):
-        file_content = "Hello World\n".encode()
+        file_content = b"Hello World\n"
         transaction_id, metadata_pdu, _, _ = self._common_small_file_test(
             TransmissionMode.UNACKNOWLEDGED, True, file_content
         )
@@ -88,7 +85,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
     def test_invalid_dir_pdu_passed(self):
         self.dest_id = ByteFieldU16(2)
         source_path = Path(f"{tempfile.gettempdir()}/dummy.txt")
-        self._generate_file(source_path, bytes())
+        self._generate_file(source_path, b"")
         metadata_pdu, _ = self._start_source_transaction(
             self._generate_generic_put_req(source_path, Path("dummy.txt"))
         )
@@ -99,10 +96,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
 
     def test_cancelled_transaction(self):
         # This tests generates two file data PDUs
-        if sys.version_info >= (3, 9):
-            rand_data = random.randbytes(self.file_segment_len * 2)
-        else:
-            rand_data = os.urandom(self.file_segment_len * 2)
+        rand_data = random.randbytes(self.file_segment_len * 2)
         self.source_id = ByteFieldU8(1)
         self.dest_id = ByteFieldU8(2)
         self._update_seq_num_to_use(3)
@@ -131,7 +125,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
     def test_invalid_source_id_pdu_passed(self):
         source_path = Path(f"{tempfile.gettempdir()}/test.txt")
         self._update_seq_num_to_use(2)
-        self._generate_file(source_path, bytes())
+        self._generate_file(source_path, b"")
         put_req = self._generate_dest_dummy_put_req(source_path)
         finish_pdu = self._regular_transaction_start(put_req)
         finish_pdu.pdu_file_directive.pdu_conf.source_entity_id = ByteFieldEmpty()
@@ -145,7 +139,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         source_path = Path(f"{tempfile.gettempdir()}/test.txt")
         self._update_seq_num_to_use(2)
         self.dest_id = ByteFieldU16(3)
-        self._generate_file(source_path, bytes())
+        self._generate_file(source_path, b"")
         put_req = self._generate_dest_dummy_put_req(source_path)
         finish_pdu = self._regular_transaction_start(put_req)
         finish_pdu.pdu_file_directive.pdu_conf.dest_entity_id = ByteFieldEmpty()
@@ -157,9 +151,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
 
     def _update_seq_num_to_use(self, seq_num: int):
         self.expected_seq_num = seq_num
-        self.seq_num_provider.get_and_increment = MagicMock(
-            return_value=self.expected_seq_num
-        )
+        self.seq_num_provider.get_and_increment = MagicMock(return_value=self.expected_seq_num)
 
     def _regular_transaction_start(self, put_req: PutRequest) -> FinishedPdu:
         metadata_pdu, _ = self._start_source_transaction(put_req)

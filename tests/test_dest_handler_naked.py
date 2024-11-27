@@ -1,21 +1,8 @@
-import os
 import random
 import struct
-import sys
 import time
 from typing import cast
 
-from cfdppy import (
-    RemoteEntityCfgTable,
-)
-from cfdppy.defs import CfdpState
-from cfdppy.exceptions import NoRemoteEntityCfgFound
-from cfdppy.handler.dest import (
-    DestHandler,
-    PduIgnoredForDest,
-    TransactionStep,
-)
-from cfdppy.user import MetadataRecvParams, TransactionFinishedParams
 from crcmod.predefined import mkPredefinedCrcFun
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
@@ -35,6 +22,17 @@ from spacepackets.cfdp.pdu import (
 )
 from spacepackets.cfdp.pdu.file_data import FileDataParams
 
+from cfdppy import (
+    RemoteEntityCfgTable,
+)
+from cfdppy.defs import CfdpState
+from cfdppy.exceptions import NoRemoteEntityCfgFound
+from cfdppy.handler.dest import (
+    DestHandler,
+    PduIgnoredForDest,
+    TransactionStep,
+)
+from cfdppy.user import MetadataRecvParams, TransactionFinishedParams
 from tests.common import CheckTimerProviderForTest
 from tests.test_dest_handler import FileInfo, TestDestHandlerBase
 
@@ -49,7 +47,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         self._generic_eof_recv_indication_check(fsm_res)
         if self.closure_requested:
             self._generic_no_error_finished_pdu_check_and_done_check(fsm_res)
-        self._generic_verify_transfer_completion(fsm_res, bytes())
+        self._generic_verify_transfer_completion(fsm_res, b"")
 
     def test_empty_file_reception(self):
         self._generic_empty_file_test()
@@ -59,7 +57,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         self._generic_empty_file_test()
 
     def _generic_small_file_test(self):
-        data = "Hello World\n".encode()
+        data = b"Hello World\n"
         with open(self.src_file_path, "wb") as of:
             of.write(data)
         crc32_func = mkPredefinedCrcFun("crc32")
@@ -123,15 +121,13 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             dest_file_name=self.dest_file_path.as_posix(),
             file_size=0,
         )
-        file_transfer_init = MetadataPdu(
-            params=metadata_params, pdu_conf=self.src_pdu_conf
-        )
+        file_transfer_init = MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf)
         self._state_checker(None, False, CfdpState.IDLE, TransactionStep.IDLE)
         with self.assertRaises(NoRemoteEntityCfgFound):
             self.dest_handler.state_machine(file_transfer_init)
 
     def test_check_timer_mechanism(self):
-        file_data = "Hello World\n".encode()
+        file_data = b"Hello World\n"
         self._generic_check_limit_test(file_data)
         fd_params = FileDataParams(
             file_data=file_data,
@@ -156,7 +152,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         )
 
     def test_cancelled_transfer_via_eof_pdu(self):
-        data = "Hello World\n".encode()
+        data = b"Hello World\n"
         with open(self.src_file_path, "wb") as of:
             of.write(data)
         file_size = self.src_file_path.stat().st_size
@@ -193,7 +189,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         )
 
     def test_cancelled_transfer_via_cancel_request(self):
-        data = "Hello World\n".encode()
+        data = b"Hello World\n"
         with open(self.src_file_path, "wb") as of:
             of.write(data)
         file_size = self.src_file_path.stat().st_size
@@ -224,7 +220,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         )
 
     def test_check_limit_reached(self):
-        data = "Hello World\n".encode()
+        data = b"Hello World\n"
         self._generic_check_limit_test(data)
         transaction_id = self.dest_handler.transaction_id
         assert transaction_id is not None
@@ -274,9 +270,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         file_info = self._random_data_two_file_segments()
         with self.assertRaises(PduIgnoredForDest):
             # Pass file data PDU first. Will be discarded
-            fsm_res = self._insert_file_segment(
-                file_info.rand_data[0 : self.file_segment_len], 0
-            )
+            fsm_res = self._insert_file_segment(file_info.rand_data[0 : self.file_segment_len], 0)
             self._state_checker(fsm_res, False, CfdpState.IDLE, TransactionStep.IDLE)
         self._generic_regular_transfer_init(
             file_size=file_info.file_size,
@@ -366,10 +360,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         self.src_file_path.chmod(0o777)
 
     def _random_data_two_file_segments(self):
-        if sys.version_info >= (3, 9):
-            rand_data = random.randbytes(round(self.file_segment_len * 1.3))
-        else:
-            rand_data = os.urandom(round(self.file_segment_len * 1.3))
+        rand_data = random.randbytes(round(self.file_segment_len * 1.3))
         file_size = len(rand_data)
         crc32_func = mkPredefinedCrcFun("crc32")
         crc32 = struct.pack("!I", crc32_func(rand_data))

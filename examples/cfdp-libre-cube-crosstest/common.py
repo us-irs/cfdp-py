@@ -1,5 +1,6 @@
-from spacepackets.cfdp import TransmissionMode, ChecksumType
+from spacepackets.cfdp import ChecksumType, TransmissionMode
 from spacepackets.util import ByteFieldU16
+
 from cfdppy.mib import RemoteEntityCfg
 
 SOURCE_ENTITY_ID = 2

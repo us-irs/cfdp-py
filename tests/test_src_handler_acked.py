@@ -1,13 +1,9 @@
-import os
 import random
-import sys
 import tempfile
 import time
 from pathlib import Path
-from unittest.mock import MagicMock
+from typing import TYPE_CHECKING
 
-from cfdppy.defs import CfdpState
-from cfdppy.handler.source import TransactionStep
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ConditionCode,
@@ -29,7 +25,13 @@ from spacepackets.cfdp.pdu import (
     TransactionStatus,
 )
 
+from cfdppy.defs import CfdpState
+from cfdppy.handler.source import TransactionStep
+
 from .test_src_handler import TestCfdpSourceHandler
+
+if TYPE_CHECKING:
+    from unittest.mock import MagicMock
 
 
 class TestSourceHandlerAcked(TestCfdpSourceHandler):
@@ -44,7 +46,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         transaction_id, _, _, eof_pdu = self._common_small_file_test(
             TransmissionMode.ACKNOWLEDGED,
             True,
-            "Hello World!".encode(),
+            b"Hello World!",
         )
         self._generic_acked_transfer_completion_full_success(transaction_id, eof_pdu)
 
@@ -69,7 +71,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         self._generic_acked_transfer_completion_full_success(transaction_id, eof_pdu)
 
     def test_missing_filedata_pdu_retransmission(self):
-        file_content = "Hello World!".encode()
+        file_content = b"Hello World!"
         transaction_id, _, first_fd_pdu, eof_pdu = self._common_small_file_test(
             TransmissionMode.ACKNOWLEDGED, True, file_content
         )
@@ -144,9 +146,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         # Calling the state machine again confirms we sent or handled the EOF packet,
         # and only then will the positive ACK counter be reset.
         self.source_handler.state_machine()
-        self._state_checker(
-            None, 0, CfdpState.BUSY, TransactionStep.WAITING_FOR_EOF_ACK
-        )
+        self._state_checker(None, 0, CfdpState.BUSY, TransactionStep.WAITING_FOR_EOF_ACK)
         self.assertEqual(self.source_handler.positive_ack_counter, 0)
         time.sleep(self.positive_ack_intvl_seconds * 1.2)
         self._verify_eof_pdu_for_positive_ack(eof_pdu_for_cancellation, 1)
@@ -173,16 +173,11 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         transaction_id, _, initial_eof_pdu = self._common_empty_file_test(None)
         time.sleep(self.positive_ack_intvl_seconds * 1.2)
         self._verify_eof_pdu_for_positive_ack(initial_eof_pdu, 1)
-        self._generic_acked_transfer_completion_full_success(
-            transaction_id, initial_eof_pdu
-        )
+        self._generic_acked_transfer_completion_full_success(transaction_id, initial_eof_pdu)
 
     def test_large_missing_chunk_retransmission(self):
         # This tests generates three file data PDUs
-        if sys.version_info >= (3, 9):
-            rand_data = random.randbytes(self.file_segment_len * 3)
-        else:
-            rand_data = os.urandom(self.file_segment_len * 3)
+        rand_data = random.randbytes(self.file_segment_len * 3)
         crc32 = self._gen_crc32(rand_data)
         source_path = Path(f"{tempfile.gettempdir()}/rand-three-segs.bin")
         self._generate_file(source_path, rand_data)
@@ -217,9 +212,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         next_pdu = self.source_handler.get_next_packet()
         assert next_pdu is None
         self.source_handler.state_machine()
-        self._generic_acked_transfer_completion_full_success(
-            transaction_params.id, eof_pdu
-        )
+        self._generic_acked_transfer_completion_full_success(transaction_params.id, eof_pdu)
 
     def _generic_acked_transfer_completion_full_success(
         self, transaction_id: TransactionId, eof_pdu: EofPdu
@@ -251,9 +244,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         self._insert_finished_pdu(pdu_conf)
         self._acknowledge_finished_pdu(pdu_conf)
         self.source_handler.state_machine()
-        self._verify_transaction_finished_indication(
-            transaction_id, expected_finished_params
-        )
+        self._verify_transaction_finished_indication(transaction_id, expected_finished_params)
         self.expected_cfdp_state = CfdpState.IDLE
         self._state_checker(
             None,
@@ -279,9 +270,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
             TransactionStep.SENDING_ACK_OF_FINISHED,
         )
 
-    def _verify_eof_pdu_for_positive_ack(
-        self, expected_eof: EofPdu, expected_ack_counter: int
-    ):
+    def _verify_eof_pdu_for_positive_ack(self, expected_eof: EofPdu, expected_ack_counter: int):
         self.source_handler.state_machine()
         self.assertEqual(self.source_handler.packets_ready, True)
         self.assertEqual(self.source_handler.num_packets_ready, 1)
@@ -300,9 +289,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         self.assertEqual(next_pdu.pdu_directive_type, DirectiveType.ACK_PDU)
         ack_pdu = next_pdu.to_ack_pdu()
         self.assertEqual(ack_pdu.direction, Direction.TOWARDS_RECEIVER)
-        self.assertEqual(
-            ack_pdu.directive_code_of_acked_pdu, DirectiveType.FINISHED_PDU
-        )
+        self.assertEqual(ack_pdu.directive_code_of_acked_pdu, DirectiveType.FINISHED_PDU)
         self.assertEqual(ack_pdu.transaction_status, TransactionStatus.ACTIVE)
         # Set this correctly for test explicitely. Every other field should be the same.
         pdu_conf.direction = Direction.TOWARDS_RECEIVER

@@ -1,19 +1,25 @@
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
 import abc
 import enum
 from abc import ABC
 from dataclasses import dataclass
-from typing import Optional, Dict, Sequence
+from typing import TYPE_CHECKING
 
 from spacepackets.cfdp.defs import (
-    FaultHandlerCode,
-    ChecksumType,
-    TransmissionMode,
     CFDP_VERSION_2,
+    ChecksumType,
     ConditionCode,
+    FaultHandlerCode,
     TransactionId,
+    TransmissionMode,
 )
-from spacepackets.util import UnsignedByteField
-from spacepackets.countdown import Countdown
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from spacepackets.countdown import Countdown
+    from spacepackets.util import UnsignedByteField
 
 
 class DefaultFaultHandlerBase(ABC):
@@ -49,7 +55,7 @@ class DefaultFaultHandlerBase(ABC):
 
     def __init__(self):
         # The initial default handle will be to cancel the transaction
-        self._handler_dict: Dict[ConditionCode, FaultHandlerCode] = {
+        self._handler_dict: dict[ConditionCode, FaultHandlerCode] = {
             ConditionCode.CANCEL_REQUEST_RECEIVED: FaultHandlerCode.NOTICE_OF_CANCELLATION,
             ConditionCode.POSITIVE_ACK_LIMIT_REACHED: FaultHandlerCode.NOTICE_OF_CANCELLATION,
             ConditionCode.KEEP_ALIVE_LIMIT_REACHED: FaultHandlerCode.NOTICE_OF_CANCELLATION,
@@ -63,10 +69,10 @@ class DefaultFaultHandlerBase(ABC):
             ConditionCode.UNSUPPORTED_CHECKSUM_TYPE: FaultHandlerCode.IGNORE_ERROR,
         }
 
-    def get_fault_handler(self, condition: ConditionCode) -> Optional[FaultHandlerCode]:
+    def get_fault_handler(self, condition: ConditionCode) -> FaultHandlerCode:
         return self._handler_dict.get(condition)
 
-    def set_handler(self, condition: ConditionCode, handler: FaultHandlerCode):
+    def set_handler(self, condition: ConditionCode, handler: FaultHandlerCode) -> None:
         """
         Raises
         -------
@@ -82,7 +88,7 @@ class DefaultFaultHandlerBase(ABC):
 
     def report_fault(
         self, transaction_id: TransactionId, condition: ConditionCode, progress: int
-    ):
+    ) -> None:
         """
         Raises
         -------
@@ -107,25 +113,23 @@ class DefaultFaultHandlerBase(ABC):
     @abc.abstractmethod
     def notice_of_suspension_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
     def notice_of_cancellation_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
     def abandoned_cb(
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
-    def ignore_cb(
-        self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    def ignore_cb(self, transaction_id: TransactionId, cond: ConditionCode, progress: int) -> None:
         pass
 
 
@@ -243,7 +247,7 @@ class RemoteEntityCfg:
     """
 
     entity_id: UnsignedByteField
-    max_file_segment_len: Optional[int]
+    max_file_segment_len: int | None
     max_packet_len: int
     closure_requested: bool
     crc_on_transmission: bool
@@ -264,8 +268,8 @@ class RemoteEntityCfgTable:
     """Thin abstraction for a dictionary containing remote configurations with the remote entity ID
     being used as a key."""
 
-    def __init__(self, init_cfgs: Optional[Sequence[RemoteEntityCfg]] = None):
-        self._remote_entity_dict = dict()
+    def __init__(self, init_cfgs: Sequence[RemoteEntityCfg] | None = None):
+        self._remote_entity_dict = {}
         if init_cfgs is not None:
             self.add_configs(init_cfgs)
 
@@ -275,11 +279,11 @@ class RemoteEntityCfgTable:
         self._remote_entity_dict.update({cfg.entity_id.value: cfg})
         return True
 
-    def add_configs(self, cfgs: Sequence[RemoteEntityCfg]):
+    def add_configs(self, cfgs: Sequence[RemoteEntityCfg]) -> None:
         for cfg in cfgs:
             if cfg.entity_id in self._remote_entity_dict:
                 continue
             self._remote_entity_dict.update({cfg.entity_id.value: cfg})
 
-    def get_cfg(self, remote_entity_id: UnsignedByteField) -> Optional[RemoteEntityCfg]:
+    def get_cfg(self, remote_entity_id: UnsignedByteField) -> RemoteEntityCfg | None:
         return self._remote_entity_dict.get(remote_entity_id.value)
