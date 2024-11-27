@@ -211,7 +211,7 @@ class SourceHandler:
     source-to-destination file transfer. This class does not send the CFDP PDU packets directly
     to allow for greater flexibility. For example, a user might want to wrap the CFDP packet
     entities into a CCSDS space packet or into a special frame type. The handler can handle
-    both unacknowledged (class 1) and acknowledged (class 2) file tranfers.
+    both unacknowledged (class 1) and acknowledged (class 2) file transfers.
 
     The following core functions are the primary interface:
 
@@ -308,10 +308,10 @@ class SourceHandler:
     def put_request(self, request: PutRequest) -> bool:
         """This function is used to pass a put request to the source handler, which is
         also used to start a file copy operation. As such, this function models the Put.request
-        CFDP primtiive.
+        CFDP primitive.
 
         Please note that the source handler can also process one put request at a time.
-        The caller is responsible of creating a new source handler, one handler can only handle
+        The caller is responsible for creating a new source handler, one handler can only handle
         one file copy request at a time.
 
 
@@ -328,7 +328,7 @@ class SourceHandler:
         Returns
         --------
 
-        False if the handler is busy. True if the handling of the request was successfull.
+        False if the handler is busy. True if the handling of the request was finished successfully.
         """
         if self.states.state != CfdpState.IDLE:
             _LOGGER.debug("CFDP source handler is busy, can't process put request")
@@ -483,7 +483,7 @@ class SourceHandler:
         return self._params.transaction_id
 
     def _reset_internal(self, clear_packet_queue: bool) -> None:
-        """This function is public to allow completely resetting the handler, but it is explicitely
+        """This function is public to allow completely resetting the handler, but it is explicitly
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
         self.states.step = TransactionStep.IDLE
@@ -493,7 +493,7 @@ class SourceHandler:
         self._params.reset()
 
     def reset(self) -> None:
-        """This function is public to allow completely resetting the handler, but it is explicitely
+        """This function is public to allow completely resetting the handler, but it is explicitly
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
         self._reset_internal(True)
@@ -544,7 +544,7 @@ class SourceHandler:
     def _check_for_originating_id(self) -> TransactionId | None:
         """This function only returns an originating ID for if not proxy put response is
         contained in the message to user list. This special logic is in place to avoid permanent
-        loop which would occur when the user uses the orignating ID to register active proxy put
+        loop which would occur when the user uses the originating ID to register active proxy put
         request, and this ID would also be generated for proxy put responses."""
         contains_proxy_put_response = False
         contains_originating_id = False
@@ -952,7 +952,7 @@ class SourceHandler:
         self.cfg.default_fault_handlers.report_fault(transaction_id, cond, progress)
 
     def _notice_of_cancellation(self, condition_code: ConditionCode) -> bool:
-        """Returns whether the fault declaration handler can returns prematurely."""
+        """Returns whether the fault declaration handler can return prematurely."""
         # CFDP standard 4.11.2.2.3: Any fault declared in the course of transferring
         # the EOF (cancel) PDU must result in abandonment of the transaction.
         if (
@@ -980,7 +980,7 @@ class SourceHandler:
         pass
 
     def _abandon_transaction(self) -> None:
-        # I guess an abandoned transaction just stops whatever it is doing.. The implementation
+        # I guess an abandoned transaction just stops whatever it is doing. The implementation
         # for this is quite easy.
         self.reset()
 

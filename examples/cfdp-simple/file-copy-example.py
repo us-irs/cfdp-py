@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""This example shows a end-to-end transfer of a small file using the CFDP high level
+"""This example shows an end-to-end transfer of a small file using the CFDP high level
 components provided by the tmtccmd package."""
 
 import argparse
@@ -105,7 +105,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
         self, transaction_id: TransactionId, cond: ConditionCode, progress: int
     ) -> None:
         _LOGGER.warning(
-            f"Received Abanadoned Fault for transaction {transaction_id!r} with condition "
+            f"Received Abandoned Fault for transaction {transaction_id!r} with condition "
             f"code {cond!r}. Progress: {progress}"
         )
 
@@ -283,10 +283,8 @@ def main() -> None:
     source_thread.join()
     dest_thread.join()
 
-    src_file_content = None
     with open(SOURCE_FILE) as file:
         src_file_content = file.read()
-    dest_file_content = None
     with open(DEST_FILE) as file:
         dest_file_content = file.read()
     assert src_file_content == dest_file_content

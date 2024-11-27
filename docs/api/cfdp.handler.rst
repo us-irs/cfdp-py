@@ -25,7 +25,7 @@ Destination Handler Module
    :undoc-members:
    :show-inheritance:
 
-Defintions Module
+Definitions Module
 -------------------------------------
 
 .. automodule:: cfdppy.handler.defs

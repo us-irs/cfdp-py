@@ -181,7 +181,7 @@ class RemoteEntityCfg:
     **Notes on Positive Acknowledgment Procedures**
 
     The ``positive_ack_timer_interval_seconds`` and ``positive_ack_timer_expiration_limit`` will
-    be used for positive acknowledgement procedures as specified in CFDP chapter 4.7. The sending
+    be used for positive acknowledgment procedures as specified in CFDP chapter 4.7. The sending
     entity will start the timer for any PDUs where an acknowledgment is required (e.g. EOF PDU).
     Once the expected ACK response has not been received for that interval, as counter will be
     incremented and the timer will be reset. Once the counter exceeds the

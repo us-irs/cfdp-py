@@ -80,7 +80,7 @@ class InvalidTransactionSeqNum(Exception):
     def __init__(self, expected: UnsignedByteField, received: UnsignedByteField):
         self.expected = expected
         self.received = received
-        super().__init__(f"expected sequence number {expected}, reiceved {self.received}")
+        super().__init__(f"expected sequence number {expected}, received {self.received}")
 
 
 class BusyError(Exception):
@@ -98,7 +98,7 @@ class PduIgnoredForSourceReason(enum.IntEnum):
     ACK_MODE_PACKET_INVALID_MODE = 0
     # Received a Finished PDU, but source handler is currently not expecting one.
     NOT_WAITING_FOR_FINISHED_PDU = 1
-    # Received a ACK PDU, but source handler is currently not expecting one.
+    # Received an ACK PDU, but source handler is currently not expecting one.
     NOT_WAITING_FOR_ACK = 2
 
 
