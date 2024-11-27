@@ -101,7 +101,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
 
 class CfdpUser(CfdpUserBase):
-    def __init__(self, base_str: str) -> None:
+    def __init__(self, base_str: str):
         self.base_str = base_str
         super().__init__()
 

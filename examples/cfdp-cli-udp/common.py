@@ -82,7 +82,7 @@ REMOTE_PORT = 5222
 
 
 class CfdpFaultHandler(DefaultFaultHandlerBase):
-    def __init__(self, base_str: str) -> None:
+    def __init__(self, base_str: str):
         self.base_str = base_str
         super().__init__()
 
@@ -118,7 +118,7 @@ class CfdpFaultHandler(DefaultFaultHandlerBase):
 
 
 class CfdpUser(CfdpUserBase):
-    def __init__(self, base_str: str, put_req_queue: Queue) -> None:
+    def __init__(self, base_str: str, put_req_queue: Queue):
         self.base_str = base_str
         self.put_req_queue = put_req_queue
         # This is a dictionary where the key is the current transaction ID for a transaction which
@@ -298,7 +298,7 @@ class UdpServer(Thread):
         source_entity_rx_queue: Queue,
         dest_entity_rx_queue: Queue,
         stop_signal: threading.Event,
-    ) -> None:
+    ):
         super().__init__()
         self.sleep_time = sleep_time
         self.udp_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -367,7 +367,7 @@ class SourceEntityHandler(Thread):
         source_entity_queue: Queue,
         tm_queue: Queue,
         stop_signal: threading.Event,
-    ) -> None:
+    ):
         super().__init__()
         self.base_str = base_str
         self.verbose_level = verbose_level
@@ -466,7 +466,7 @@ class DestEntityHandler(Thread):
         dest_entity_queue: Queue,
         tm_queue: Queue,
         stop_signal: threading.Event,
-    ) -> None:
+    ):
         super().__init__()
         self.base_str = base_str
         self.verbose_level = verbose_level
