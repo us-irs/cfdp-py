@@ -15,21 +15,17 @@ The underlying base packet library used to generate the packets to be sent is th
 
 You can install this package from PyPI
 
-Linux:
+Install command assuming an active virtual environment:
 
 ```sh
-python3 -m pip install cfdp-py
+pip install cfdp-py
 ```
 
-Windows:
-
-```sh
-py -m pip install cfdp-py
-```
 
 # Examples
 
-You can find all examples [inside the documentation](https://cfdp-py.readthedocs.io/en/latest/examples.html) and the `examples` directory of this repository.
+You can find all examples [inside the documentation](https://cfdp-py.readthedocs.io/en/latest/examples.html)
+and the `examples` directory of this repository.
 
 # Tests
 
@@ -74,4 +70,18 @@ You can run the doctests with
 
 ```sh
 make doctest
+```
+
+# Formatting and Linting
+
+Linting:
+
+```sh
+ruff check .
+```
+
+Formatting:
+
+```sh
+ruff format .
 ```
