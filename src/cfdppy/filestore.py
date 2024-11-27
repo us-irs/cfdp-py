@@ -38,6 +38,8 @@ class VirtualFilestore(abc.ABC):
         :param offset: Offset to read from
         :param read_len: Number of bytes to read
         :return: The read data
+        :raises PermissionError: In case the file is not readable
+        :raises FileNotFoundError: In case the file does not exist.
         """
 
     @abc.abstractmethod
@@ -55,7 +57,7 @@ class VirtualFilestore(abc.ABC):
         """Check if a given path is a directory.
 
         :param path: Path to check
-        :return: True if the path is
+        :return: True if the path is a directory
         """
 
     @abc.abstractmethod
@@ -79,6 +81,7 @@ class VirtualFilestore(abc.ABC):
         """Truncate a file to zero bytes.
 
         :param file: File to truncate
+        :raises FileNotFoundError: In case the file does not exist
         """
 
     @abc.abstractmethod
@@ -87,6 +90,7 @@ class VirtualFilestore(abc.ABC):
 
         :param file: File to get the size of as number of bytes
         :return: Size of the file in bytes
+        :raises FileNotFoundError: In case the file does not exist
         """
 
     @abc.abstractmethod
@@ -94,9 +98,13 @@ class VirtualFilestore(abc.ABC):
         """This is not used as part of a filestore request, it is used to build up the received
         file.
 
+        The file needs to exist before writing to it.
+
         :param file: File to write to
         :param data: Data to write
         :param offset: Offset to write, may be None for no offset
+        :raises PermissionError: In case the file is not writable
+        :raises FileNotFoundError: In case the file does not exist
         """
 
     @abc.abstractmethod
