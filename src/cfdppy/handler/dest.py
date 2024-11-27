@@ -122,7 +122,7 @@ class TransactionStep(enum.Enum):
     the deferred lost segments detection procedure."""
     TRANSFER_COMPLETION = 7
     """File transfer complete. Perform checksum verification and notice of completion. Please
-    note that this does not necessarily mean that the file transfer was completed succesfully."""
+    note that this does not necessarily mean that the file transfer was completed successfully."""
     SENDING_FINISHED_PDU = 8
     WAITING_FOR_FINISHED_ACK = 9
 
@@ -498,7 +498,7 @@ class DestHandler:
             self._pdus_to_be_sent.clear()
 
     def reset(self) -> None:
-        """This function is public to allow completely resetting the handler, but it is explicitely
+        """This function is public to allow completely resetting the handler, but it is explicitly
         discouraged to do this. CFDP generally has mechanism to detect issues and errors on itself.
         """
         self._reset_internal(False)
@@ -782,7 +782,7 @@ class DestHandler:
         ):
             ack_pdu = packet_holder.to_ack_pdu()
             if ack_pdu.directive_code_of_acked_pdu != DirectiveType.FINISHED_PDU:
-                _LOGGER.warn(
+                _LOGGER.warning(
                     f"received ACK PDU with invalid ACKed directive code "
                     f" {ack_pdu.directive_code_of_acked_pdu}"
                 )
@@ -801,7 +801,7 @@ class DestHandler:
             ):
                 self._declare_fault(ConditionCode.POSITIVE_ACK_LIMIT_REACHED)
                 # This is a bit of a hack: We want the transfer completion and the corresponding
-                # re-send of the Finished PDU to happen in the same FSM cycle. However, the call
+                # Finished PDU to be re-sent in the same FSM cycle. However, the call
                 # order in the FSM prevents this from happening, so we just call the state machine
                 # again manually.
                 if self._params.completion_disposition == CompletionDisposition.CANCELED:
@@ -999,7 +999,7 @@ class DestHandler:
             )
         if self._params.fp.file_size_eof != self._params.fp.file_size:
             # Can or should this ever happen for a No Error EOF? Treat this like a non-fatal
-            # error for now..
+            # error for now.
             _LOGGER.warning("missmatch of EOF file size and Metadata File Size for success EOF")
         if (
             self.transmission_mode == TransmissionMode.UNACKNOWLEDGED
@@ -1163,6 +1163,6 @@ class DestHandler:
         pass
 
     def _abandon_transaction(self) -> None:
-        # I guess an abandoned transaction just stops whatever it is doing.. The implementation
+        # I guess an abandoned transaction just stops whatever it is doing. The implementation
         # for this is quite easy.
         self.reset()

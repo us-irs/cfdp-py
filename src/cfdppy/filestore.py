@@ -1,3 +1,4 @@
+"""Contains the Filestore Interface and a Native Filestore implementation."""
 from __future__ import annotations  # Python 3.9 compatibility for | syntax
 
 import abc
@@ -5,7 +6,7 @@ import logging
 import os
 import platform
 import shutil
-from typing import TYPE_CHECKING, BinaryIO, NoReturn
+from typing import TYPE_CHECKING, BinaryIO
 
 from crcmod.predefined import PredefinedCrc
 from spacepackets.cfdp.defs import NULL_CHECKSUM_U32, ChecksumType
@@ -23,45 +24,77 @@ FilestoreResult = FilestoreResponseStatusCode
 
 
 class VirtualFilestore(abc.ABC):
+    """Interface for a virtual filestore implementation."""
+
     @abc.abstractmethod
     def read_data(self, file: Path, offset: int | None, read_len: int) -> bytes:
         """This is not used as part of a filestore request, it is used to read a file, for example
-        to send it"""
-        raise NotImplementedError("Reading file not implemented in virtual filestore")
+        to send it
+
+        :param file: File to read
+        :param offset: Offset to read from
+        :param read_len: Number of bytes to read
+        :return: The read data
+        """
 
     @abc.abstractmethod
-    def read_from_opened_file(self, bytes_io: BinaryIO, offset: int, read_len: int) -> NoReturn:
-        raise NotImplementedError("Reading from opened file not implemented in virtual filestore")
+    def read_from_opened_file(self, bytes_io: BinaryIO, offset: int, read_len: int) -> bytes:
+        """Read data from an already opened file object.
+
+        :param bytes_io: File object
+        :param offset: Offset to read from
+        :param read_len: Number of bytes to read
+        :return: The read data
+        """
 
     @abc.abstractmethod
     def is_directory(self, path: Path) -> bool:
-        pass
+        """Check if a given path is a directory.
+
+        :param path: Path to check
+        :return: True if the path is
+        """
 
     @abc.abstractmethod
     def filename_from_full_path(self, path: Path) -> str | None:
-        pass
+        """Get the filename from a full path.
+
+        :param path: Full path
+        :return: Filename
+        """
 
     @abc.abstractmethod
     def file_exists(self, path: Path) -> bool:
-        pass
+        """Check if a file exists at the given path.
+
+        :param path: Path to check
+        :return: True if the file exists
+        """
 
     @abc.abstractmethod
     def truncate_file(self, file: Path) -> None:
-        pass
+        """Truncate a file to zero bytes.
+
+        :param file: File to truncate
+        """
 
     @abc.abstractmethod
     def file_size(self, file: Path) -> int:
-        pass
+        """Get the size of a file.
+
+        :param file: File to get the size of as number of bytes
+        :return: Size of the file in bytes
+        """
 
     @abc.abstractmethod
-    def write_data(self, file: Path, data: bytes, offset: int | None) -> NoReturn:
+    def write_data(self, file: Path, data: bytes, offset: int | None) -> None:
         """This is not used as part of a filestore request, it is used to build up the received
         file.
 
-        :raises PermissionError:
-        :raises FileNotFoundError:
+        :param file: File to write to
+        :param data: Data to write
+        :param offset: Offset to write, may be None for no offset
         """
-        raise NotImplementedError("Writing to data not implemented in virtual filestore")
 
     @abc.abstractmethod
     def create_file(self, file: Path) -> FilestoreResponseStatusCode:
