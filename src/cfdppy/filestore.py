@@ -1,4 +1,5 @@
 """Contains the Filestore Interface and a Native Filestore implementation."""
+
 from __future__ import annotations  # Python 3.9 compatibility for | syntax
 
 import abc
@@ -28,8 +29,10 @@ class VirtualFilestore(abc.ABC):
 
     @abc.abstractmethod
     def read_data(self, file: Path, offset: int | None, read_len: int) -> bytes:
-        """This is not used as part of a filestore request, it is used to read a file, for example
-        to send it
+        """Read data from a provided Path at a specific offset.
+
+        This is not used as part of a filestore request.
+        It is used to read a file, for example to send it.
 
         :param file: File to read
         :param offset: Offset to read from
