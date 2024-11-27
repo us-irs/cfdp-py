@@ -121,9 +121,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             dest_file_name=self.dest_file_path.as_posix(),
             file_size=0,
         )
-        file_transfer_init = MetadataPdu(
-            params=metadata_params, pdu_conf=self.src_pdu_conf
-        )
+        file_transfer_init = MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf)
         self._state_checker(None, False, CfdpState.IDLE, TransactionStep.IDLE)
         with self.assertRaises(NoRemoteEntityCfgFound):
             self.dest_handler.state_machine(file_transfer_init)
@@ -272,9 +270,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         file_info = self._random_data_two_file_segments()
         with self.assertRaises(PduIgnoredForDest):
             # Pass file data PDU first. Will be discarded
-            fsm_res = self._insert_file_segment(
-                file_info.rand_data[0 : self.file_segment_len], 0
-            )
+            fsm_res = self._insert_file_segment(file_info.rand_data[0 : self.file_segment_len], 0)
             self._state_checker(fsm_res, False, CfdpState.IDLE, TransactionStep.IDLE)
         self._generic_regular_transfer_init(
             file_size=file_info.file_size,

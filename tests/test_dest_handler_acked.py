@@ -107,9 +107,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res)
         self.dest_handler.state_machine()
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
         self._generic_verify_missing_segment_requested(
@@ -219,9 +217,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_eof_ack_packet(fsm_res)
 
         self.dest_handler.state_machine()
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
         self._generic_verify_missing_segment_requested(0, len(file_content), [(2, 6)])
@@ -257,15 +253,11 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_eof_ack_packet(fsm_res)
 
         self.dest_handler.state_machine()
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
         # We now receive a NAK sequence with both missing file segments.
-        self._generic_verify_missing_segment_requested(
-            0, len(file_content), [(2, 4), (6, 8)]
-        )
+        self._generic_verify_missing_segment_requested(0, len(file_content), [(2, 4), (6, 8)])
         # We insert both missing file segments.
         fsm_res = self._insert_file_segment(
             file_content[2:4],
@@ -337,9 +329,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res)
         self.dest_handler.state_machine()
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_METADATA
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_METADATA)
         self._generic_verify_missing_segment_requested(0, 0, [(0, 0)])
         fsm_res = self._generic_transfer_init(
             0,
@@ -347,9 +337,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             expected_init_state=CfdpState.BUSY,
             expected_init_step=TransactionStep.WAITING_FOR_METADATA,
         )
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, b"")
         self._generic_insert_finished_pdu_ack(finished_pdu)
@@ -374,23 +362,17 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res)
         self.dest_handler.state_machine()
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
         # We now receive a NAK sequence with both missing file segments.
-        self._generic_verify_missing_segment_requested(
-            0, len(file_content), [(2, 4), (6, 8)]
-        )
+        self._generic_verify_missing_segment_requested(0, len(file_content), [(2, 4), (6, 8)])
         time.sleep(self.timeout_nak_procedure_seconds * 1.1)
         self.dest_handler.state_machine()
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 1)
         # We now receive a NAK sequence with both missing file segments.
-        self._generic_verify_missing_segment_requested(
-            0, len(file_content), [(2, 4), (6, 8)]
-        )
+        self._generic_verify_missing_segment_requested(0, len(file_content), [(2, 4), (6, 8)])
 
     def test_deferred_lost_segment_handling_after_timeout(self):
         file_content = b"Hello World!"
@@ -419,9 +401,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # Now that we inserted a packet, the NAK activity counter should be reset.
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
-        self._state_checker(
-            None, 0, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA
-        )
+        self._state_checker(None, 0, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         time.sleep(self.timeout_nak_procedure_seconds * 1.1)
         self.dest_handler.state_machine()
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
@@ -451,9 +431,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         time.sleep(self.timeout_positive_ack_procedure_seconds * 1.1)
         fsm_res = self.dest_handler.state_machine()
         self.assertEqual(self.dest_handler.positive_ack_counter, 1)
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK)
         self._generic_no_error_finished_pdu_check_acked(fsm_res)
         fsm_res = self.dest_handler.state_machine()
         self.assertEqual(self.dest_handler.positive_ack_counter, 1)
@@ -514,9 +492,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         delivery_code: DeliveryCode,
         file_status: FileStatus,
     ):
-        self._state_checker(
-            fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK
-        )
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK)
         next_pdu = self.dest_handler.get_next_packet()
         self.assertIsNotNone(next_pdu)
         self.assertEqual(next_pdu.pdu_type, PduType.FILE_DIRECTIVE)
@@ -558,9 +534,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self.assertEqual(next_pdu.pdu_directive_type, DirectiveType.ACK_PDU)
         ack_pdu = next_pdu.to_ack_pdu()
         self.assertEqual(ack_pdu.directive_code_of_acked_pdu, DirectiveType.EOF_PDU)
-        self.assertEqual(
-            ack_pdu.condition_code_of_acked_pdu, condition_code_of_acked_pdu
-        )
+        self.assertEqual(ack_pdu.condition_code_of_acked_pdu, condition_code_of_acked_pdu)
         self.assertEqual(ack_pdu.transaction_status, TransactionStatus.ACTIVE)
 
     def _generic_insert_finished_pdu_ack(self, finished_pdu: FinishedPdu):

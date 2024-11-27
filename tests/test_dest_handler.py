@@ -77,9 +77,7 @@ class TestDestHandlerBase(TestCase):
         self.fault_handler = FaultHandler()
         self.fault_handler.notice_of_cancellation_cb = MagicMock()
         self.entity_id = ByteFieldU16(2)
-        self.local_cfg = LocalEntityCfg(
-            self.entity_id, self.indication_cfg, self.fault_handler
-        )
+        self.local_cfg = LocalEntityCfg(self.entity_id, self.indication_cfg, self.fault_handler)
         self.src_entity_id = ByteFieldU16(1)
         self.src_pdu_conf = PduConfig(
             source_entity_id=self.src_entity_id,
@@ -120,9 +118,7 @@ class TestDestHandlerBase(TestCase):
             self.local_cfg,
             self.cfdp_user,
             self.remote_cfg_table,
-            CheckTimerProviderForTest(
-                timeout_dest_entity_ms=self.timeout_check_limit_handling_ms
-            ),
+            CheckTimerProviderForTest(timeout_dest_entity_ms=self.timeout_check_limit_handling_ms),
         )
         self.src_file_path, self.dest_file_path = (
             Path(f"{tempfile.gettempdir()}/source"),
@@ -155,12 +151,8 @@ class TestDestHandlerBase(TestCase):
         file_size: int,
         expected_msgs_to_user: list[MessageToUserTlv] | None = None,
     ):
-        fsm_res = self._generic_transfer_init(
-            file_size, 0, CfdpState.IDLE, TransactionStep.IDLE
-        )
-        self._state_checker(
-            fsm_res, 0, CfdpState.BUSY, TransactionStep.RECEIVING_FILE_DATA
-        )
+        fsm_res = self._generic_transfer_init(file_size, 0, CfdpState.IDLE, TransactionStep.IDLE)
+        self._state_checker(fsm_res, 0, CfdpState.BUSY, TransactionStep.RECEIVING_FILE_DATA)
         self.cfdp_user.metadata_recv_indication.assert_called_once()
         self.cfdp_user.metadata_recv_indication.assert_called_with(
             MetadataRecvParams(
@@ -191,12 +183,8 @@ class TestDestHandlerBase(TestCase):
             dest_file_name=self.dest_file_path.as_posix(),
             file_size=file_size,
         )
-        file_transfer_init = MetadataPdu(
-            params=metadata_params, pdu_conf=self.src_pdu_conf
-        )
-        self._state_checker(
-            None, expected_init_packets, expected_init_state, expected_init_step
-        )
+        file_transfer_init = MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf)
+        self._state_checker(None, expected_init_packets, expected_init_state, expected_init_step)
         self.assertEqual(self.dest_handler.file_size, None)
         fsm_res = self.dest_handler.state_machine(file_transfer_init)
         self.assertEqual(self.dest_handler.file_size, file_size)
@@ -218,10 +206,7 @@ class TestDestHandlerBase(TestCase):
             self.assertEqual(self.dest_handler.progress, offset + len(segment))
         else:
             self.assertEqual(self.dest_handler.progress, expected_progress)
-        if (
-            self.indication_cfg.file_segment_recvd_indication_required
-            and check_indication
-        ):
+        if self.indication_cfg.file_segment_recvd_indication_required and check_indication:
             self.cfdp_user.file_segment_recv_indication.assert_called_once()
             self.assertEqual(self.cfdp_user.file_segment_recv_indication.call_count, 1)
             seg_recv_params = cast(
@@ -239,9 +224,7 @@ class TestDestHandlerBase(TestCase):
         return fsm_res
 
     def _generic_insert_eof_pdu(self, file_size: int, checksum: bytes) -> FsmResult:
-        eof_pdu = EofPdu(
-            file_size=file_size, file_checksum=checksum, pdu_conf=self.src_pdu_conf
-        )
+        eof_pdu = EofPdu(file_size=file_size, file_checksum=checksum, pdu_conf=self.src_pdu_conf)
         fsm_res = self.dest_handler.state_machine(eof_pdu)
         if self.expected_mode == TransmissionMode.UNACKNOWLEDGED:
             if self.closure_requested:
@@ -257,9 +240,7 @@ class TestDestHandlerBase(TestCase):
 
     def _generic_eof_recv_indication_check(self, fsm_res: FsmResult):
         self.cfdp_user.eof_recv_indication.assert_called_once()
-        self.assertEqual(
-            self.cfdp_user.eof_recv_indication.call_args.args[0], self.transaction_id
-        )
+        self.assertEqual(self.cfdp_user.eof_recv_indication.call_args.args[0], self.transaction_id)
         self.assertEqual(fsm_res.states.transaction_id, self.transaction_id)
 
     def _generic_no_error_finished_pdu_check_and_done_check(
@@ -358,14 +339,10 @@ class TestDestHandlerBase(TestCase):
                 file_status=FileStatus.FILE_RETAINED,
                 delivery_code=DeliveryCode.DATA_COMPLETE,
             )
-        self._generic_transfer_finished_indication_check(
-            fsm_res, expected_finished_params
-        )
+        self._generic_transfer_finished_indication_check(fsm_res, expected_finished_params)
         if expected_file_data is not None:
             self.assertTrue(self.dest_file_path.exists())
-            self.assertEqual(
-                self.dest_file_path.stat().st_size, len(expected_file_data)
-            )
+            self.assertEqual(self.dest_file_path.stat().st_size, len(expected_file_data))
             with open(self.dest_file_path, "rb") as file:
                 self.assertEqual(expected_file_data, file.read())
         fsm_res = self.dest_handler.state_machine()
@@ -384,13 +361,9 @@ class TestDestHandlerBase(TestCase):
             TransactionFinishedParams,
             self.cfdp_user.transaction_finished_indication.call_args.args[0],
         )
-        self.assertEqual(
-            finished_params_from_callback.transaction_id, self.transaction_id
-        )
+        self.assertEqual(finished_params_from_callback.transaction_id, self.transaction_id)
         self.assertEqual(fsm_res.states.transaction_id, self.transaction_id)
-        self.assertEqual(
-            finished_params_from_callback.finished_params, expected_finished_params
-        )
+        self.assertEqual(finished_params_from_callback.finished_params, expected_finished_params)
 
     def _generate_put_response_opts(self) -> TlvList:
         return [
@@ -414,9 +387,7 @@ class TestDestHandlerBase(TestCase):
             dest_file_name=None,
             file_size=0,
         )
-        return MetadataPdu(
-            params=metadata_params, pdu_conf=self.src_pdu_conf, options=options
-        )
+        return MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf, options=options)
 
     def tearDown(self) -> None:
         if self.dest_file_path.exists():

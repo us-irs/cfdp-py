@@ -23,8 +23,9 @@ if TYPE_CHECKING:
 class PutRequest:
     """This is the base class modelling put request. You can create this class from the simplified
     :py:class:`tmtccmd.config.defs.CfdpParams` class with the generic
-    :py:func:`tmtccmd.config.cfdp.generic_cfdp_params_to_put_request` API and/or all related specific
-    APIs."""
+    :py:func:`tmtccmd.config.cfdp.generic_cfdp_params_to_put_request` API and/or all related
+     specific APIs.
+     """
 
     destination_id: UnsignedByteField
     # All the following fields are optional because a put request can also be a metadata-only
@@ -33,9 +34,7 @@ class PutRequest:
     dest_file: Path | None
     trans_mode: TransmissionMode | None
     closure_requested: bool | None
-    seg_ctrl: SegmentationControl | None = (
-        SegmentationControl.NO_RECORD_BOUNDARIES_PRESERVATION
-    )
+    seg_ctrl: SegmentationControl | None = SegmentationControl.NO_RECORD_BOUNDARIES_PRESERVATION
     fault_handler_overrides: list[FaultHandlerOverrideTlv] | None = None
     flow_label_tlv: FlowLabelTlv | None = None
     msgs_to_user: list[MessageToUserTlv] | None = None
@@ -60,11 +59,7 @@ class PutRequest:
             trans_mode_str = "Transmission Mode from MIB"
         closure_str = "Closure Requested from MIB"
         if self.closure_requested is not None:
-            closure_str = (
-                "Closure requested"
-                if self.closure_requested
-                else "No closure requested"
-            )
+            closure_str = "Closure requested" if self.closure_requested else "No closure requested"
         if not self.metadata_only:
             print_str = (
                 f"Destination ID {self.destination_id.value}\n\t"
@@ -75,18 +70,14 @@ class PutRequest:
         return print_str
 
     def __str_for_metadata_only(self) -> str:
-        print_str = (
-            f"Metadata Only Put Request with Destination ID {self.destination_id.value}"
-        )
+        print_str = f"Metadata Only Put Request with Destination ID {self.destination_id.value}"
         if self.msgs_to_user is not None:
             for idx, msg_to_user in enumerate(self.msgs_to_user):
                 msg_to_user = cast(MessageToUserTlv, msg_to_user)
                 if msg_to_user.is_reserved_cfdp_message():
                     reserved_msg = msg_to_user.to_reserved_msg_tlv()
                     assert reserved_msg is not None
-                    print_str = PutRequest.__str_for_reserved_cfdp_msg(
-                        idx, reserved_msg, print_str
-                    )
+                    print_str = PutRequest.__str_for_reserved_cfdp_msg(idx, reserved_msg, print_str)
         return print_str
 
     @staticmethod
@@ -111,21 +102,13 @@ class PutRequest:
     def __str_for_put_req(reserved_msg: ReservedCfdpMessage, print_str: str) -> str:
         put_request_params = reserved_msg.get_proxy_put_request_params()
         assert put_request_params is not None
-        print_str += (
-            f"\n\tProxy Put Dest Entity ID: {put_request_params.dest_entity_id.value}"
-        )
-        print_str += (
-            f"\n\tSource file: {put_request_params.source_file_name.value.decode()}"
-        )
-        print_str += (
-            f"\n\tDest file: {put_request_params.dest_file_name.value.decode()}"
-        )
+        print_str += f"\n\tProxy Put Dest Entity ID: {put_request_params.dest_entity_id.value}"
+        print_str += f"\n\tSource file: {put_request_params.source_file_name.value.decode()}"
+        print_str += f"\n\tDest file: {put_request_params.dest_file_name.value.decode()}"
         return print_str
 
     @staticmethod
-    def __str_for_put_response(
-        reserved_msg: ReservedCfdpMessage, print_str: str
-    ) -> str:
+    def __str_for_put_response(reserved_msg: ReservedCfdpMessage, print_str: str) -> str:
         put_response_params = reserved_msg.get_proxy_put_response_params()
         assert put_response_params is not None
         print_str += f"\n\tCondition Code: {put_response_params.condition_code!r}"

@@ -66,9 +66,7 @@ class TestRequest(TestCase):
         print_str = str(put_req)
         print(print_str)
         self.assertTrue("Metadata Only Put Request with Destination ID 5" in print_str)
-        self.assertTrue(
-            f"Message to User 0: Proxy Operation {ProxyMessageType.PUT_REQUEST!r}"
-        )
+        self.assertTrue(f"Message to User 0: Proxy Operation {ProxyMessageType.PUT_REQUEST!r}")
         self.assertTrue("/tmp/test.txt" in print_str)
         self.assertTrue("/tmp/test2.txt" in print_str)
         self.assertTrue("Message to User 1: Originating Transaction ID" in print_str)

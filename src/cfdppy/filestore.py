@@ -30,12 +30,8 @@ class VirtualFilestore(abc.ABC):
         raise NotImplementedError("Reading file not implemented in virtual filestore")
 
     @abc.abstractmethod
-    def read_from_opened_file(
-        self, bytes_io: BinaryIO, offset: int, read_len: int
-    ) -> NoReturn:
-        raise NotImplementedError(
-            "Reading from opened file not implemented in virtual filestore"
-        )
+    def read_from_opened_file(self, bytes_io: BinaryIO, offset: int, read_len: int) -> NoReturn:
+        raise NotImplementedError("Reading from opened file not implemented in virtual filestore")
 
     @abc.abstractmethod
     def is_directory(self, path: Path) -> bool:
@@ -65,9 +61,7 @@ class VirtualFilestore(abc.ABC):
         :raises PermissionError:
         :raises FileNotFoundError:
         """
-        raise NotImplementedError(
-            "Writing to data not implemented in virtual filestore"
-        )
+        raise NotImplementedError("Writing to data not implemented in virtual filestore")
 
     @abc.abstractmethod
     def create_file(self, file: Path) -> FilestoreResponseStatusCode:
@@ -80,16 +74,12 @@ class VirtualFilestore(abc.ABC):
         return FilestoreResponseStatusCode.NOT_PERFORMED
 
     @abc.abstractmethod
-    def rename_file(
-        self, _old_file: Path, _new_file: Path
-    ) -> FilestoreResponseStatusCode:
+    def rename_file(self, _old_file: Path, _new_file: Path) -> FilestoreResponseStatusCode:
         _LOGGER.warning("Renaming file not implemented in virtual filestore")
         return FilestoreResponseStatusCode.NOT_PERFORMED
 
     @abc.abstractmethod
-    def replace_file(
-        self, _replaced_file: Path, _source_file: Path
-    ) -> FilestoreResponseStatusCode:
+    def replace_file(self, _replaced_file: Path, _source_file: Path) -> FilestoreResponseStatusCode:
         _LOGGER.warning("Replacing file not implemented in virtual filestore")
         return FilestoreResponseStatusCode.NOT_PERFORMED
 
@@ -99,9 +89,7 @@ class VirtualFilestore(abc.ABC):
         return FilestoreResponseStatusCode.NOT_PERFORMED
 
     @abc.abstractmethod
-    def remove_directory(
-        self, _dir_name: Path, recursive: bool
-    ) -> FilestoreResponseStatusCode:
+    def remove_directory(self, _dir_name: Path, recursive: bool) -> FilestoreResponseStatusCode:
         _LOGGER.warning("Removing directory not implemented in virtual filestore")
         return FilestoreResponseStatusCode.NOT_PERFORMED
 
@@ -140,20 +128,16 @@ class VirtualFilestore(abc.ABC):
         segment_len: int = 4096,
     ) -> bool:
         return (
-            self.calculate_checksum(
-                checksum_type, file_path, size_to_verify, segment_len
-            )
+            self.calculate_checksum(checksum_type, file_path, size_to_verify, segment_len)
             == checksum
         )
 
 
 class NativeFilestore(VirtualFilestore):
-    def __init__(self) -> None:
+    def __init__(self):
         pass
 
-    def read_data(
-        self, file: Path, offset: int | None, read_len: int | None = None
-    ) -> bytes:
+    def read_data(self, file: Path, offset: int | None, read_len: int | None = None) -> bytes:
         if not file.exists():
             raise FileNotFoundError(file)
         file_size = self.file_size(file)
@@ -170,9 +154,7 @@ class NativeFilestore(VirtualFilestore):
             raise FileNotFoundError(file)
         return file.stat().st_size
 
-    def read_from_opened_file(
-        self, bytes_io: BinaryIO, offset: int, read_len: int
-    ) -> bytes:
+    def read_from_opened_file(self, bytes_io: BinaryIO, offset: int, read_len: int) -> bytes:
         bytes_io.seek(offset)
         return bytes_io.read(read_len)
 
@@ -226,9 +208,7 @@ class NativeFilestore(VirtualFilestore):
         os.remove(file)
         return FilestoreResponseStatusCode.DELETE_SUCCESS
 
-    def rename_file(
-        self, old_file: Path, new_file: Path
-    ) -> FilestoreResponseStatusCode:
+    def rename_file(self, old_file: Path, new_file: Path) -> FilestoreResponseStatusCode:
         if old_file.is_dir() or new_file.is_dir():
             _LOGGER.exception(f"{old_file} or {new_file} is a directory")
             return FilestoreResponseStatusCode.RENAME_NOT_PERFORMED
@@ -239,20 +219,14 @@ class NativeFilestore(VirtualFilestore):
         old_file.rename(new_file)
         return FilestoreResponseStatusCode.RENAME_SUCCESS
 
-    def replace_file(
-        self, replaced_file: Path, source_file: Path
-    ) -> FilestoreResponseStatusCode:
+    def replace_file(self, replaced_file: Path, source_file: Path) -> FilestoreResponseStatusCode:
         if replaced_file.is_dir() or source_file.is_dir():
             _LOGGER.warning(f"{replaced_file} is a directory")
             return FilestoreResponseStatusCode.REPLACE_NOT_ALLOWED
         if not replaced_file.exists():
-            return (
-                FilestoreResponseStatusCode.REPLACE_FILE_NAME_ONE_TO_BE_REPLACED_DOES_NOT_EXIST
-            )
+            return FilestoreResponseStatusCode.REPLACE_FILE_NAME_ONE_TO_BE_REPLACED_DOES_NOT_EXIST
         if not source_file.exists():
-            return (
-                FilestoreResponseStatusCode.REPLACE_FILE_NAME_TWO_REPLACE_SOURCE_NOT_EXIST
-            )
+            return FilestoreResponseStatusCode.REPLACE_FILE_NAME_TWO_REPLACE_SOURCE_NOT_EXIST
         source_file.replace(replaced_file)
         return FilestoreResponseStatusCode.REPLACE_SUCCESS
 
@@ -352,9 +326,7 @@ class NativeFilestore(VirtualFilestore):
             while current_offset < size_to_verify:
                 read_len = min(segment_len, size_to_verify - current_offset)
                 if read_len > 0:
-                    crc_obj.update(
-                        self.read_from_opened_file(file, current_offset, read_len)
-                    )
+                    crc_obj.update(self.read_from_opened_file(file, current_offset, read_len))
                 current_offset += read_len
             return crc_obj.digest()
 

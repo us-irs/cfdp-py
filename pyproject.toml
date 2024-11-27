@@ -47,8 +47,7 @@ exclude = [
     "venv",
     "docs"
 ]
-line-length = 120
-target-version = "py39"
+line-length = 100
 
 [tool.ruff.lint]
 select = [
@@ -84,6 +83,7 @@ select = [
 ignore = [
     "N818", # Exception names should end in "Error", requires API change
     "S101", # Use of assert, should be changed in the future
+    "ANN204", # Do not use return typing on __init__, __new__ and __call__ methods
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]

@@ -53,9 +53,7 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
         self._state_checker(fsm_res, False, CfdpState.IDLE, TransactionStep.IDLE)
 
     def test_empty_file_explicit_nacked(self):
-        self.default_remote_cfg.default_transmission_mode = (
-            TransmissionMode.ACKNOWLEDGED
-        )
+        self.default_remote_cfg.default_transmission_mode = TransmissionMode.ACKNOWLEDGED
         transaction_id, _, _ = self._common_empty_file_test(
             transmission_mode=TransmissionMode.UNACKNOWLEDGED,
         )
@@ -74,9 +72,7 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
 
     def test_small_file_pdu_generation(self):
         file_content = b"Hello World\n"
-        transaction_id, _, _, _ = self._common_small_file_test(
-            None, False, file_content
-        )
+        transaction_id, _, _, _ = self._common_small_file_test(None, False, file_content)
         self._verify_eof_indication(transaction_id)
         self._test_transaction_completion()
 
@@ -148,13 +144,9 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
         self.assertIsNone(metadata_pdu.source_file_name)
         self.assertIsNone(metadata_pdu.dest_file_name)
         self.assertEqual(fsm_res.states.state, CfdpState.BUSY)
-        self.assertEqual(
-            self.source_handler.transmission_mode, TransmissionMode.UNACKNOWLEDGED
-        )
+        self.assertEqual(self.source_handler.transmission_mode, TransmissionMode.UNACKNOWLEDGED)
         self.assertEqual(fsm_res.states.step, TransactionStep.SENDING_METADATA)
-        expected_id = TransactionId(
-            metadata_pdu.source_entity_id, metadata_pdu.transaction_seq_num
-        )
+        expected_id = TransactionId(metadata_pdu.source_entity_id, metadata_pdu.transaction_seq_num)
         self.cfdp_user.transaction_indication.assert_called_once_with(
             TransactionParams(expected_id)
         )
@@ -168,17 +160,13 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
                 delivery_code=DeliveryCode.DATA_COMPLETE,
             ),
         )
-        self.cfdp_user.transaction_finished_indication.assert_called_once_with(
-            finished_params
-        )
+        self.cfdp_user.transaction_finished_indication.assert_called_once_with(finished_params)
         self._state_checker(fsm_res, 0, CfdpState.IDLE, TransactionStep.IDLE)
 
     def test_put_req_by_proxy_op(self):
         file_content = b"Hello World\n"
         dest_path = Path(f"{tempfile.gettempdir()}/dest.txt")
-        originating_id = TransactionId(
-            ByteFieldU16(5), ByteFieldU16(self.expected_seq_num)
-        )
+        originating_id = TransactionId(ByteFieldU16(5), ByteFieldU16(self.expected_seq_num))
         originating_id_msg = OriginatingTransactionId(originating_id)
         put_req = PutRequest(
             destination_id=self.dest_id,
@@ -193,9 +181,7 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
         self.source_id = ByteFieldU8(1)
         self.dest_id = ByteFieldU8(2)
         self.source_handler.source_id = self.source_id
-        tparams = self._transaction_with_file_data_wrapper(
-            put_req, file_content, originating_id
-        )
+        tparams = self._transaction_with_file_data_wrapper(put_req, file_content, originating_id)
         self._generic_file_segment_handling(0, file_content)
         fsm_res = self.source_handler.state_machine()
         self._test_eof_file_pdu(fsm_res, tparams.file_size, tparams.crc_32)
@@ -204,9 +190,7 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
     def test_proxy_put_response_no_originating_id(self):
         """Proxy put responses should not pass the originating ID to the CFDP user to avoid
         permanent loops of trying to finish a proxy put request."""
-        originating_id = TransactionId(
-            ByteFieldU16(5), ByteFieldU16(self.expected_seq_num)
-        )
+        originating_id = TransactionId(ByteFieldU16(5), ByteFieldU16(self.expected_seq_num))
         originating_id_msg = OriginatingTransactionId(originating_id)
         put_req = PutRequest(
             destination_id=self.dest_id,

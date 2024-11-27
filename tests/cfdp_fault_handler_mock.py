@@ -18,12 +18,8 @@ class FaultHandler(DefaultFaultHandlerBase):
     ):
         pass
 
-    def abandoned_cb(
-        self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    def abandoned_cb(self, transaction_id: TransactionId, cond: ConditionCode, progress: int):
         pass
 
-    def ignore_cb(
-        self, transaction_id: TransactionId, cond: ConditionCode, progress: int
-    ):
+    def ignore_cb(self, transaction_id: TransactionId, cond: ConditionCode, progress: int):
         pass

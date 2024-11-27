@@ -51,9 +51,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
         self._state_checker(fsm_res, False, CfdpState.IDLE, TransactionStep.IDLE)
 
     def test_empty_file_pdu_generation_nacked_explicitely(self):
-        self.default_remote_cfg.default_transmission_mode = (
-            TransmissionMode.ACKNOWLEDGED
-        )
+        self.default_remote_cfg.default_transmission_mode = TransmissionMode.ACKNOWLEDGED
         transaction_id, metadata_pdu, _ = self._common_empty_file_test(
             TransmissionMode.UNACKNOWLEDGED
         )
@@ -153,9 +151,7 @@ class TestCfdpSourceHandlerWithClosure(TestCfdpSourceHandler):
 
     def _update_seq_num_to_use(self, seq_num: int):
         self.expected_seq_num = seq_num
-        self.seq_num_provider.get_and_increment = MagicMock(
-            return_value=self.expected_seq_num
-        )
+        self.seq_num_provider.get_and_increment = MagicMock(return_value=self.expected_seq_num)
 
     def _regular_transaction_start(self, put_req: PutRequest) -> FinishedPdu:
         metadata_pdu, _ = self._start_source_transaction(put_req)

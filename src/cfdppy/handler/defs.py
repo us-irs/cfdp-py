@@ -13,9 +13,7 @@ class _FileParamsBase:
 
     @classmethod
     def empty(cls) -> _FileParamsBase:
-        return cls(
-            progress=0, segment_len=0, crc32=None, file_size=None, metadata_only=False
-        )
+        return cls(progress=0, segment_len=0, crc32=None, file_size=None, metadata_only=False)
 
     def reset(self) -> None:
         self.progress = 0

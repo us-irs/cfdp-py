@@ -134,15 +134,11 @@ class TestCfdpHostFilestore(TestCase):
         if os.path.exists(self.test_list_dir_name):
             os.remove(self.test_list_dir_name)
         # Do not delete, user can check file content now
-        res = filestore.list_directory(
-            dir_name=tempdir, target_file=self.test_list_dir_name
-        )
+        res = filestore.list_directory(dir_name=tempdir, target_file=self.test_list_dir_name)
         self.assertTrue(res == FilestoreResult.SUCCESS)
 
     def test_modular_checksum(self):
-        self.assertEqual(
-            calc_modular_checksum(self.file_path), self.expected_checksum_for_example
-        )
+        self.assertEqual(calc_modular_checksum(self.file_path), self.expected_checksum_for_example)
 
     def tearDown(self):
         if self.file_path.exists():
