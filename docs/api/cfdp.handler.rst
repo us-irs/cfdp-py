@@ -8,6 +8,7 @@ Package Contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:
 
 Source Handler Module
 -------------------------------------
