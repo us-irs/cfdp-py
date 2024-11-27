@@ -14,5 +14,5 @@ which cross-tests the `cfdp-py` CFDP implementation with the
 
 Finally, you can see a more complex example also featuring more features of the CFDP state machines
 `here <https://github.com/us-irs/cfdp-py/tree/main/examples/cfdp-cli-udp>`_. This example
-uses UDP servers for communication and explicitely separates the local and remote entity
+uses UDP servers for communication and explicitly separates the local and remote entity
 application.
