@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+## Fixed
+
+- Correction for `InvalidDestinationId` exception arguments in destination handler.
+
 # [v0.4.0] 2024-11-08
 
 ## Added
