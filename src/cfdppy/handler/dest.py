@@ -108,7 +108,7 @@ class TransactionStep(enum.Enum):
     WAITING_FOR_METADATA = 2
     """Special state which is only used for acknowledged mode. The CFDP entity is still waiting
     for a missing metadata PDU to be re-sent. Until then, all arriving file data PDUs will only
-    update the internal lost segment tracker. If the EOF PDU is arrive, the state will go to.
+    update the internal lost segment tracker. When the EOF PDU arrives, the state will be left.
     Please note that deferred lost segment handling might also be active when this state is set."""
     RECEIVING_FILE_DATA = 3
     RECV_FILE_DATA_WITH_CHECK_LIMIT_HANDLING = 4
@@ -434,7 +434,7 @@ class DestHandler:
         if packet.direction != Direction.TOWARDS_RECEIVER:
             raise InvalidPduDirection(Direction.TOWARDS_RECEIVER, packet.pdu_header.direction)
         if packet.dest_entity_id != self.cfg.local_entity_id:
-            raise InvalidDestinationId(self.cfg.local_entity_id, packet.source_entity_id)
+            raise InvalidDestinationId(self.cfg.local_entity_id, packet.dest_entity_id)
         if self.remote_cfg_table.get_cfg(packet.source_entity_id) is None:
             raise NoRemoteEntityCfgFound(entity_id=packet.dest_entity_id)
         if get_packet_destination(packet) == PacketDestination.SOURCE_HANDLER:
