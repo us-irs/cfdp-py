@@ -433,7 +433,7 @@ class DestHandler:
     def _check_inserted_packet(self, packet: GenericPduPacket) -> None:
         if packet.direction != Direction.TOWARDS_RECEIVER:
             raise InvalidPduDirection(Direction.TOWARDS_RECEIVER, packet.pdu_header.direction)
-        if packet.dest_entity_id != self.cfg.local_entity_id:
+        if packet.dest_entity_id.value != self.cfg.local_entity_id.value:
             raise InvalidDestinationId(self.cfg.local_entity_id, packet.dest_entity_id)
         if self.remote_cfg_table.get_cfg(packet.source_entity_id) is None:
             raise NoRemoteEntityCfgFound(entity_id=packet.dest_entity_id)
