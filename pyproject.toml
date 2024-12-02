@@ -27,7 +27,7 @@ classifiers = [
   "Topic :: Scientific/Engineering"
 ]
 dependencies = [
-  "spacepackets>=0.24.2, <=0.26",
+  "spacepackets~=0.26.0",
   "crcmod~=1.7",
   "deprecation~=2.1",
 ]
