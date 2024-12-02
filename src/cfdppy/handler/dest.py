@@ -707,9 +707,10 @@ class DestHandler:
         else:
             self.states.step = TransactionStep.TRANSFER_COMPLETION
         msgs_to_user_list = None
-        if metadata_pdu.options is not None:
+        options = metadata_pdu.options_as_tlv()
+        if options is not None:
             msgs_to_user_list = []
-            for tlv in metadata_pdu.options:
+            for tlv in options:
                 if tlv.tlv_type == TlvType.MESSAGE_TO_USER:
                     msgs_to_user_list.append(MessageToUserTlv.from_tlv(tlv))
         file_size_for_indication = (
