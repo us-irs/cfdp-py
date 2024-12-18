@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 from pyfakefs.fake_filesystem_unittest import TestCase
+from spacepackets.cfdp import ChecksumType
 
 from cfdppy.crc import calc_modular_checksum
 from cfdppy.filestore import FilestoreResult, NativeFilestore
@@ -139,6 +140,15 @@ class TestCfdpHostFilestore(TestCase):
 
     def test_modular_checksum(self):
         self.assertEqual(calc_modular_checksum(self.file_path), self.expected_checksum_for_example)
+
+    def test_zero_length_checksum(self):
+        with self.assertRaises(ValueError):
+            self.filestore.calculate_checksum(
+                checksum_type=ChecksumType.CRC_32,
+                file_path=self.file_path,
+                size_to_verify=10,
+                segment_len=0,
+            )
 
     def tearDown(self):
         if self.file_path.exists():
