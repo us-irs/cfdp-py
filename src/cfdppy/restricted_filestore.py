@@ -1,4 +1,13 @@
-"""Wrapper to restrict filestore access to a specific directory."""
+"""Wrapper to restrict filestore access to a specific directory.
+
+This class will limit the filestore access to a specific directory.
+All relative paths will be relative to this directory.
+All absolute paths will be converted to subpaths of the restricted path e.g.
+    /tmp/file.txt -> /restricted_path/tmp/file.txt
+
+This is not a security feature but a convenience feature to limit filestore
+access to a specific directory.
+"""
 
 from pathlib import Path
 
@@ -25,7 +34,7 @@ class RestrictedFilestore(NativeFilestore):
     def __make_local(self, file: Path) -> Path:
         """Make file paths subfolders of the restricted path.
 
-        :param file: File to make relative to
+        :param file: File to make relative to the restricted path
         :return: New Path
         """
         if not file.is_relative_to(self.restricted_path):
