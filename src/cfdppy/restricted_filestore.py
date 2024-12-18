@@ -44,7 +44,7 @@ class RestrictedFilestore(NativeFilestore):
         """
         if not file.is_relative_to(self.restricted_path):
             if file.is_absolute():
-                return self.restricted_path.joinpath(file.relative_to(file.root))
+                return self.restricted_path.joinpath(file.relative_to(file.anchor))
             return self.restricted_path.joinpath(file)
         return file
 
