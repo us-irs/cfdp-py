@@ -26,7 +26,7 @@ class RestrictedFilestore(NativeFilestore):
         Absolute paths will be converted to subpaths of the restricted path
          keeping the original path structure.
 
-        :param restricted_path: Path to restrict to
+        :param restricted_path: Path to restrict the filestore to
         """
         super().__init__()
         self.restricted_path = restricted_path
