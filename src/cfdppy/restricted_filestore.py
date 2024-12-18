@@ -9,11 +9,16 @@ This is not a security feature but a convenience feature to limit filestore
 access to a specific directory.
 """
 
-from pathlib import Path
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
 
-from spacepackets.cfdp import ChecksumType, FilestoreResponseStatusCode
+from typing import TYPE_CHECKING
 
 from cfdppy.filestore import NativeFilestore
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from spacepackets.cfdp import ChecksumType, FilestoreResponseStatusCode
 
 
 class RestrictedFilestore(NativeFilestore):
