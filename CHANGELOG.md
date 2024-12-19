@@ -8,10 +8,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+## Added
+
+- Added `RestrictedFilestore` to limit the file access of the `NativeFilestore` to a specific
+  directory.
+
 ## Fixed
 
 - Correction for `InvalidDestinationId` exception arguments in destination handler.
-- Destination handler now only checks entity ID values when checking inserted packets
+- Destination handler now only checks entity ID values when checking inserted packets.
+- Source handler used an incorrect check if the file exists without the virtual filestore.
 
 # [v0.4.0] 2024-11-08
 

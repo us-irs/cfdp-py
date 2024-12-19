@@ -573,7 +573,7 @@ class SourceHandler:
             self._params.fp.metadata_only = True
         else:
             assert self._put_req.source_file is not None
-            if not self._put_req.source_file.exists():
+            if not self.user.vfs.file_exists(self._put_req.source_file):
                 # TODO: Handle this exception in the handler, reset CFDP state machine
                 raise SourceFileDoesNotExist(self._put_req.source_file)
             file_size = self.user.vfs.file_size(self._put_req.source_file)

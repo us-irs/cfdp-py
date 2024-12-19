@@ -5,7 +5,7 @@ helpers inside the :py:mod:`tmtccmd.config.cfdp` module."""
 from spacepackets.cfdp import TransactionId
 
 from .defs import CfdpIndication, CfdpState
-from .filestore import HostFilestore
+from .filestore import HostFilestore, VirtualFilestore
 from .handler.common import PacketDestination, get_packet_destination
 from .mib import (
     IndicationCfg,
@@ -14,6 +14,7 @@ from .mib import (
     RemoteEntityCfgTable,
 )
 from .request import PutRequest
+from .restricted_filestore import RestrictedFilestore
 from .user import CfdpUserBase
 
 __all__ = [
@@ -27,6 +28,8 @@ __all__ = [
     "PutRequest",
     "RemoteEntityCfg",
     "RemoteEntityCfgTable",
+    "RestrictedFilestore",
     "TransactionId",
+    "VirtualFilestore",
     "get_packet_destination",
 ]
