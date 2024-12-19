@@ -1,12 +1,18 @@
-from spacepackets.cfdp import ConditionCode
+from __future__ import annotations  # Python 3.9 compatibility for | syntax
+
+from typing import TYPE_CHECKING
 
 from cfdppy import CfdpUserBase, TransactionId, VirtualFilestore
-from cfdppy.user import (
-    FileSegmentRecvdParams,
-    MetadataRecvParams,
-    TransactionFinishedParams,
-    TransactionParams,
-)
+
+if TYPE_CHECKING:
+    from spacepackets.cfdp import ConditionCode
+
+    from cfdppy.user import (
+        FileSegmentRecvdParams,
+        MetadataRecvParams,
+        TransactionFinishedParams,
+        TransactionParams,
+    )
 
 
 class CfdpUser(CfdpUserBase):
