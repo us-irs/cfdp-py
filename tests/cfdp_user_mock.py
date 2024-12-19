@@ -1,6 +1,6 @@
 from spacepackets.cfdp import ConditionCode
 
-from cfdppy import CfdpUserBase, TransactionId
+from cfdppy import CfdpUserBase, TransactionId, VirtualFilestore
 from cfdppy.user import (
     FileSegmentRecvdParams,
     MetadataRecvParams,
@@ -10,8 +10,8 @@ from cfdppy.user import (
 
 
 class CfdpUser(CfdpUserBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, vfs: VirtualFilestore | None = None):
+        super().__init__(vfs=vfs)
 
     def transaction_indication(self, transaction_params: TransactionParams):
         pass
