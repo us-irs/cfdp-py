@@ -1,9 +1,10 @@
 import os.path
+import shutil
 import struct
 import tempfile
 from pathlib import Path
+from unittest import TestCase
 
-from pyfakefs.fake_filesystem_unittest import TestCase
 from spacepackets.cfdp import ChecksumType
 
 from cfdppy.crc import calc_modular_checksum
@@ -32,8 +33,7 @@ EXAMPLE_DATA_CFDP = bytes(
 
 class TestCfdpHostFilestore(TestCase):
     def setUp(self):
-        self.setUpPyfakefs()
-        self.temp_dir = tempfile.gettempdir()
+        self.temp_dir = tempfile.mkdtemp()
         self.test_file_name_0 = Path(f"{self.temp_dir}/cfdp_unittest0.txt")
         self.test_file_name_1 = Path(f"{self.temp_dir}/cfdp_unittest1.txt")
         self.test_dir_name_0 = Path(f"{self.temp_dir}/cfdp_test_folder0")
@@ -41,7 +41,7 @@ class TestCfdpHostFilestore(TestCase):
         self.test_list_dir_name = Path(f"{self.temp_dir}/list-dir-test.txt")
         self.filestore = NativeFilestore()
 
-        self.file_path = Path(f"{tempfile.gettempdir()}/crc_file")
+        self.file_path = Path(f"{self.temp_dir}/crc_file")
         with open(self.file_path, "wb") as file:
             file.write(EXAMPLE_DATA_CFDP)
         # Kind of re-writing the modular checksum impl here which we are trying to test, but the
@@ -63,6 +63,9 @@ class TestCfdpHostFilestore(TestCase):
         full_sum %= 2**32
 
         self.expected_checksum_for_example = struct.pack("!I", full_sum)
+
+    def tearDown(self):
+        shutil.rmtree(self.temp_dir)
 
     def test_creation(self):
         res = self.filestore.create_file(self.test_file_name_0)
@@ -149,7 +152,3 @@ class TestCfdpHostFilestore(TestCase):
                 size_to_verify=10,
                 segment_len=0,
             )
-
-    def tearDown(self):
-        if self.file_path.exists():
-            os.remove(self.file_path)

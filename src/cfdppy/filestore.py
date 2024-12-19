@@ -7,6 +7,7 @@ import logging
 import os
 import platform
 import shutil
+import subprocess
 from typing import TYPE_CHECKING, BinaryIO
 
 from crcmod.predefined import PredefinedCrc
@@ -310,24 +311,28 @@ class NativeFilestore(VirtualFilestore):
         :param recursive:
         :return:
         """
+        if not dir_name.exists() or not dir_name.is_dir():
+            _LOGGER.warning(f"{dir_name} does not exist or is not a directory")
+            return FilestoreResponseStatusCode.NOT_PERFORMED
+
+        if platform.system() == "Linux" or platform.system() == "Darwin":
+            cmd = ["ls", "-al"]
+        elif platform.system() == "Windows":
+            cmd = ["dir"]
+        else:
+            _LOGGER.warning(f"Unknown OS {platform.system()}, do not know how to list directory")
+            return FilestoreResponseStatusCode.NOT_PERFORMED
+
         open_flag = "a" if target_file.exists() else "w"
         with open(target_file, open_flag) as of:
-            if platform.system() == "Linux" or platform.system() == "Darwin":
-                cmd = "ls -al"
-            elif platform.system() == "Windows":
-                cmd = "dir"
-            else:
-                _LOGGER.warning(
-                    f"Unknown OS {platform.system()}, do not know how to list directory"
-                )
-                return FilestoreResponseStatusCode.NOT_PERFORMED
             of.write(f"Contents of directory {dir_name} generated with '{cmd}':\n")
-            curr_path = os.getcwd()
-            os.chdir(dir_name)
-            os.system(  # noqa S605 TODO this is dangerous as the user has control over the target_file
-                f'{cmd} >> "{target_file}"'
-            )
-            os.chdir(curr_path)
+            try:
+                # cmd is not modified by user input and dir_name has been checked above
+                result = subprocess.run(cmd, check=True, capture_output=True, cwd=dir_name)  # noqa S603
+            except (subprocess.CalledProcessError, OSError) as e:
+                _LOGGER.error(f"Failed to list directory {dir_name}: {e}")
+                return FilestoreResponseStatusCode.NOT_PERFORMED
+            of.write(result.stdout.decode())
         return FilestoreResponseStatusCode.SUCCESS
 
     def _verify_checksum(self, checksum_type: ChecksumType) -> None:
