@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Correction for `InvalidDestinationId` exception arguments in destination handler.
 - Destination handler now only checks entity ID values when checking inserted packets.
 - Source handler used an incorrect check if the file exists without the virtual filestore.
+- Source handler opened files without the virtual filestore
 
 # [v0.4.0] 2024-11-08
 

@@ -659,8 +659,8 @@ class SourceHandler:
     def _prepare_metadata_base_params_with_metadata(self) -> MetadataParams:
         assert self._params.remote_cfg is not None
         return MetadataParams(
-            dest_file_name=self._put_req.dest_file.as_posix(),  # type: ignore
-            source_file_name=self._put_req.source_file.as_posix(),  # type: ignore
+            dest_file_name=self._put_req.dest_file.as_posix(),
+            source_file_name=self._put_req.source_file.as_posix(),
             checksum_type=self._params.remote_cfg.crc_type,
             closure_requested=self._params.closure_requested,
             file_size=self._params.fp.file_size,
@@ -900,16 +900,17 @@ class SourceHandler:
         re-transmit file data PDUs of segments which were already sent."""
         assert self._put_req is not None
         assert self._put_req.source_file is not None
-        with open(self._put_req.source_file, "rb") as of:
-            file_data = self.user.vfs.read_from_opened_file(of, offset, read_len)
-            # TODO: Support for record continuation state not implemented yet. Segment metadata
-            #       flag is therefore always set to False. Segment metadata support also omitted
-            #       for now. Implementing those generically could be done in form of a callback,
-            #       e.g. abstractmethod of this handler as a first way, another one being
-            #       to expect the user to supply some helper class to split up a file
-            fd_params = FileDataParams(file_data=file_data, offset=offset, segment_metadata=None)
-            file_data_pdu = FileDataPdu(pdu_conf=self._params.pdu_conf, params=fd_params)
-            self._add_packet_to_be_sent(file_data_pdu)
+        file_data = self.user.vfs.read_data(
+            file=self._put_req.source_file, offset=offset, read_len=read_len
+        )
+        # TODO: Support for record continuation state not implemented yet. Segment metadata
+        #       flag is therefore always set to False. Segment metadata support also omitted
+        #       for now. Implementing those generically could be done in form of a callback,
+        #       e.g. abstractmethod of this handler as a first way, another one being
+        #       to expect the user to supply some helper class to split up a file
+        fd_params = FileDataParams(file_data=file_data, offset=offset, segment_metadata=None)
+        file_data_pdu = FileDataPdu(pdu_conf=self._params.pdu_conf, params=fd_params)
+        self._add_packet_to_be_sent(file_data_pdu)
 
     def _prepare_eof_pdu(self, checksum: bytes) -> None:
         assert self._params.cond_code_eof is not None
