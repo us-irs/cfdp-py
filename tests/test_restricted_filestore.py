@@ -43,6 +43,27 @@ class TestFileSystem(TestCase):
             self.assertEqual(result, FilestoreResponseStatusCode.DELETE_SUCCESS)
             self.assertFalse(Path(tempdir).joinpath("renamed_file.txt").exists())
 
+    def test_create_folder_with_file(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            filestore = RestrictedFilestore(restricted_path=Path(tempdir))
+            new_dir = Path(tempdir).joinpath("new_dir")
+            self.assertFalse(new_dir.exists())
+            result = filestore.create_file(new_dir.joinpath("a_file.txt"))
+            self.assertEqual(FilestoreResponseStatusCode.CREATE_SUCCESS, result)
+            self.assertTrue(new_dir.exists())
+            self.assertTrue(new_dir.joinpath("a_file.txt").exists())
+
+            # Create more than one folder
+            first_folder = Path(tempdir).joinpath("first_folder")
+            second_folder = first_folder.joinpath("second_folder")
+            self.assertFalse(first_folder.exists())
+            self.assertFalse(second_folder.exists())
+            result = filestore.create_file(second_folder.joinpath("a_file.txt"))
+            self.assertEqual(FilestoreResponseStatusCode.CREATE_SUCCESS, result)
+            self.assertTrue(first_folder.exists())
+            self.assertTrue(second_folder.exists())
+            self.assertTrue(second_folder.joinpath("a_file.txt").exists())
+
     def test_handle_directories(self):
         with tempfile.TemporaryDirectory() as tempdir:
             filestore = RestrictedFilestore(restricted_path=Path(tempdir))
