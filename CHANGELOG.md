@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Added `RestrictedFilestore` to limit the file access of the `NativeFilestore` to a specific
   directory.
+- `Filestore` creates a directory if it does not exist when creating a new file.
 
 ## Fixed
 

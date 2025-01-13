@@ -238,6 +238,8 @@ class NativeFilestore(VirtualFilestore):
             _LOGGER.warning("File already exists")
             return FilestoreResponseStatusCode.CREATE_NOT_ALLOWED
         try:
+            # Creates subfolders if they do not exist
+            file.parent.mkdir(exist_ok=True, parents=True)
             with open(file, "x"):
                 pass
             return FilestoreResponseStatusCode.CREATE_SUCCESS
