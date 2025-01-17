@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+# [v0.5.0] 2025-01-17
+
 ## Added
 
 - Added `RestrictedFilestore` to limit the file access of the `NativeFilestore` to a specific
