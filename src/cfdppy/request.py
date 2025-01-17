@@ -21,10 +21,12 @@ if TYPE_CHECKING:
 
 @dataclasses.dataclass
 class PutRequest:
-    """This is the base class modelling put request. You can create this class from the simplified
+    """This is the base class modelling the CFDP put request.
+
+    You can create this class from the simplified
     :py:class:`tmtccmd.config.defs.CfdpParams` class with the generic
     :py:func:`tmtccmd.config.cfdp.generic_cfdp_params_to_put_request` API and/or all related
-     specific APIs.
+    specific APIs.
     """
 
     destination_id: UnsignedByteField
