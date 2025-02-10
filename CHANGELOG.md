@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+# [v0.5.1] 2025-02-10
+
+- Bump allowed `spacepackets` to v0.28.0
+
 # [v0.5.0] 2025-01-17
 
 ## Added
