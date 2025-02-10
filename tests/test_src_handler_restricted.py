@@ -114,19 +114,23 @@ class TestSrcHandlerRestrictedFileStore(TestCase):
         self.assertTrue(fsm.states.packets_ready)
         self.assertEqual(fsm.states.num_packets_ready, 1)
         next_pdu = self.source_handler.get_next_packet()
-        self.assertIsInstance(next_pdu.base, MetadataPdu)
+        assert next_pdu is not None
+        self.assertIsInstance(next_pdu.pdu, MetadataPdu)
         fsm = self.source_handler.state_machine()
         self.assertTrue(fsm.states.packets_ready)
-        file_data = self.source_handler.get_next_packet()
-        self.assertIsInstance(file_data.base, FileDataPdu)
+        next_pdu = self.source_handler.get_next_packet()
+        assert next_pdu is not None
+        self.assertIsInstance(next_pdu.pdu, FileDataPdu)
         fsm = self.source_handler.state_machine()
         self.assertTrue(fsm.states.packets_ready)
-        eof_data = self.source_handler.get_next_packet()
-        self.assertIsInstance(eof_data.base, EofPdu)
+        next_pdu = self.source_handler.get_next_packet()
+        assert next_pdu is not None
+        self.assertIsInstance(next_pdu.pdu, EofPdu)
+        assert isinstance(next_pdu.pdu, EofPdu)
         # Send ACK
         pdu_conf = PduConfig(
             direction=Direction.TOWARDS_SENDER,
-            transaction_seq_num=eof_data.base.transaction_seq_num,
+            transaction_seq_num=next_pdu.pdu.transaction_seq_num,
             source_entity_id=self.source_id,
             dest_entity_id=self.dest_id,
             trans_mode=TransmissionMode.ACKNOWLEDGED,
@@ -147,6 +151,7 @@ class TestSrcHandlerRestrictedFileStore(TestCase):
         fsm = self.source_handler.state_machine(packet=finished)
         self.assertTrue(fsm.states.packets_ready)
         finished_ack = self.source_handler.get_next_packet()
-        self.assertIsInstance(finished_ack.base, AckPdu)
+        assert finished_ack is not None
+        self.assertIsInstance(finished_ack.pdu, AckPdu)
         fsm = self.source_handler.state_machine()
         self.assertEqual(fsm.states.state, CfdpState.IDLE)
