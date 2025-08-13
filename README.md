@@ -11,6 +11,20 @@ perform file transfers according to the [CCSDS Blue Book 727.0-B-5](https://publ
 The underlying base packet library used to generate the packets to be sent is the
 [spacepackets](https://github.com/us-irs/spacepackets-py) library.
 
+# Features
+
+This library supports the following features:
+
+- Unacknowledged (class 1) file transfers for both the sending and destination side
+- Acknowledged (class 2) file transfers for both the sending and destination side
+
+The following features have not been implemented yet. PRs or notifications for demand are welcome!
+
+- Suspending transfers
+- Inactivity handling
+- Start and end of transmission and reception opportunity handling
+- Keep Alive and Prompt PDU handling
+
 # Install
 
 You can install this package from PyPI
