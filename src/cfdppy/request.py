@@ -75,7 +75,7 @@ class PutRequest:
         print_str = f"Metadata Only Put Request with Destination ID {self.destination_id.value}"
         if self.msgs_to_user is not None:
             for idx, msg_to_user in enumerate(self.msgs_to_user):
-                msg_to_user = cast(MessageToUserTlv, msg_to_user)
+                msg_to_user = cast("MessageToUserTlv", msg_to_user)
                 if msg_to_user.is_reserved_cfdp_message():
                     reserved_msg = msg_to_user.to_reserved_msg_tlv()
                     assert reserved_msg is not None

@@ -162,6 +162,7 @@ class LostSegmentTracker:
         if len(self.lost_segments) <= 1:
             return
         merged_segments = []
+        # Initialize to the first entry.
         current_start, current_end = next(iter(self.lost_segments.items()))
 
         for seg_start, seg_end in self.lost_segments.items():
@@ -520,7 +521,7 @@ class DestHandler:
                 self._start_transaction(metadata_pdu)
             else:
                 raise ValueError(
-                    f"unexpected configuration error: {pdu_holder.pdu} in " f"IDLE state machine"
+                    f"unexpected configuration error: {pdu_holder.pdu} in IDLE state machine"
                 )
 
     def __non_idle_fsm(self, packet: GenericPduPacket | None) -> None:
@@ -613,7 +614,7 @@ class DestHandler:
 
     def _start_transaction_missing_metadata_recv_fd(self, fd_pdu: FileDataPdu) -> None:
         self._common_first_packet_not_metadata_pdu_handler(fd_pdu)
-        self._handle_fd_without_previous_metadata(True, fd_pdu)
+        self._handle_fd_without_previous_metadata(fd_pdu)
 
     def _handle_finished_pdu_sent(self) -> None:
         if (
@@ -625,19 +626,16 @@ class DestHandler:
             return
         self._reset_internal(False)
 
-    def _handle_fd_without_previous_metadata(self, first_pdu: bool, fd_pdu: FileDataPdu) -> None:
+    def _handle_fd_without_previous_metadata(self, fd_pdu: FileDataPdu) -> None:
         self._params.fp.progress = fd_pdu.offset + len(fd_pdu.file_data)
         if len(fd_pdu.file_data) > 0:
-            start = fd_pdu.offset
-            if first_pdu:
-                start = 0
             # I will just wait until the metadata has been received with re-requesting the file
             # data PDU. How does the standard expect me to process file data PDUs where I do not
             # even know the filenames? How would I even generically do this?
             # I will add this file segment (and all others which came before and might be missing
             # as well) to the lost segment list.
             self._params.acked_params.lost_seg_tracker.add_lost_segment(
-                (start, self._params.fp.progress)
+                (0, self._params.fp.progress)
             )
             # This is a bit tricky: We need to set those variables to an appropriate value so
             # the removal of handled lost segments works properly. However, we can not set the
@@ -649,8 +647,7 @@ class DestHandler:
         # Re-request the metadata PDU.
         if self._params.remote_cfg.immediate_nak_mode:
             lost_segments: list[tuple[int, int]] = []
-            if first_pdu:
-                lost_segments.append((0, 0))
+            lost_segments.append((0, 0))
             if len(fd_pdu.file_data) > 0:
                 lost_segments.append((0, self._params.fp.progress))
             if len(lost_segments) > 0:
@@ -698,7 +695,7 @@ class DestHandler:
         # sender.
         if self._params.remote_cfg is None:
             _LOGGER.warning(
-                "No remote configuration found for remote ID" f" {metadata_pdu.dest_entity_id}"
+                f"No remote configuration found for remote ID {metadata_pdu.dest_entity_id}"
             )
             raise NoRemoteEntityCfgFound(metadata_pdu.dest_entity_id)
         if not self._params.fp.metadata_only:
@@ -753,7 +750,7 @@ class DestHandler:
         if packet_holder.pdu is None:
             return
         if packet_holder.pdu_type == PduType.FILE_DATA:
-            self._handle_fd_without_previous_metadata(True, packet_holder.to_file_data_pdu())
+            self._handle_fd_without_previous_metadata(packet_holder.to_file_data_pdu())
         elif packet_holder.pdu_directive_type == DirectiveType.METADATA_PDU:
             self._handle_metadata_packet(packet_holder.to_metadata_pdu())
             if self._params.acked_params.deferred_lost_segment_detection_active:

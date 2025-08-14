@@ -4,7 +4,7 @@ import copy
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
 from crcmod.predefined import PredefinedCrc
@@ -33,11 +33,13 @@ from cfdppy.exceptions import UnretrievedPdusToBeSent
 from cfdppy.handler import FsmResult, SourceHandler
 from cfdppy.handler.source import TransactionStep
 from cfdppy.request import PutRequest
-from cfdppy.user import TransactionFinishedParams, TransactionParams
 
 from .cfdp_fault_handler_mock import FaultHandler
 from .cfdp_user_mock import CfdpUser
 from .common import CheckTimerProviderForTest
+
+if TYPE_CHECKING:
+    from cfdppy.user import TransactionFinishedParams, TransactionParams
 
 
 @dataclass
@@ -325,7 +327,7 @@ class TestCfdpSourceHandler(TestCase):
         self.cfdp_user.transaction_indication.assert_called_once()
         self.assertEqual(self.cfdp_user.transaction_indication.call_count, 1)
         transaction_params = cast(
-            TransactionParams,
+            "TransactionParams",
             self.cfdp_user.transaction_indication.call_args.args[0],
         )
         self.assertEqual(transaction_params.transaction_id, self.source_handler.transaction_id)
@@ -377,7 +379,7 @@ class TestCfdpSourceHandler(TestCase):
         self.cfdp_user.transaction_finished_indication.assert_called_once()
         self.assertEqual(self.cfdp_user.transaction_finished_indication.call_count, 1)
         transaction_finished_params = cast(
-            TransactionFinishedParams,
+            "TransactionFinishedParams",
             self.cfdp_user.transaction_finished_indication.call_args.args[0],
         )
         self.assertEqual(transaction_finished_params.transaction_id, expected_id)
