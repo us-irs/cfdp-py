@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - `TransactionStep.SENDING_ACK_OF_FINISHED` for source handler which is not required anymore.
 
+## Changed
+
+- Replaced `*Cfg*` abbreviation with `*Config*`
+
 # [v0.5.1] 2025-02-10
 
 - Bump allowed `spacepackets` to v0.28.0

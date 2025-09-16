@@ -1,7 +1,7 @@
 from spacepackets.cfdp import ChecksumType, TransmissionMode
 from spacepackets.util import ByteFieldU16
 
-from cfdppy.mib import RemoteEntityCfg
+from cfdppy.mib import RemoteEntityConfig
 
 SOURCE_ENTITY_ID = 2
 REMOTE_ENTITY_ID = 3
@@ -12,7 +12,7 @@ UDP_SERVER_PORT = 5222
 FILE_SEGMENT_SIZE = 128
 MAX_PACKET_LEN = 512
 
-REMOTE_CFG_FOR_DEST_ENTITY = RemoteEntityCfg(
+REMOTE_CFG_FOR_DEST_ENTITY = RemoteEntityConfig(
     entity_id=ByteFieldU16(REMOTE_ENTITY_ID),
     max_packet_len=MAX_PACKET_LEN,
     max_file_segment_len=FILE_SEGMENT_SIZE,

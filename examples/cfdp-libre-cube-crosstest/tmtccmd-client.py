@@ -36,9 +36,9 @@ from cfdppy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
     EntityType,
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfgTable,
+    IndicationConfig,
+    LocalEntityConfig,
+    RemoteEntityConfigTable,
 )
 from cfdppy.request import PutRequest
 from cfdppy.user import (
@@ -217,12 +217,12 @@ def main() -> None:
     with open(SOURCE_FILE, "w") as file:
         file.write(FILE_CONTENT)
 
-    remote_cfg_table = RemoteEntityCfgTable([REMOTE_CFG_FOR_DEST_ENTITY])
+    remote_cfg_table = RemoteEntityConfigTable([REMOTE_CFG_FOR_DEST_ENTITY])
 
     # Enable all indications.
-    src_indication_cfg = IndicationCfg()
+    src_indication_cfg = IndicationConfig()
     src_fault_handler = CfdpFaultHandler()
-    src_entity_cfg = LocalEntityCfg(SOURCE_ENTITY_ID, src_indication_cfg, src_fault_handler)
+    src_entity_cfg = LocalEntityConfig(SOURCE_ENTITY_ID, src_indication_cfg, src_fault_handler)
     # 16 bit sequence count for transactions.
     src_seq_count_provider = SeqCountProvider(16)
     src_user = CfdpUser("SRC ENTITY")

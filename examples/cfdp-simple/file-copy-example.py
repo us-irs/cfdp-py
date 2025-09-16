@@ -33,10 +33,10 @@ from cfdppy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
     EntityType,
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
+    IndicationConfig,
+    LocalEntityConfig,
+    RemoteEntityConfig,
+    RemoteEntityConfigTable,
 )
 from cfdppy.request import PutRequest
 from cfdppy.user import (
@@ -67,7 +67,7 @@ class TransferParams:
 _LOGGER = logging.getLogger()
 
 
-REMOTE_CFG_FOR_SOURCE_ENTITY = RemoteEntityCfg(
+REMOTE_CFG_FOR_SOURCE_ENTITY = RemoteEntityConfig(
     entity_id=SOURCE_ENTITY_ID,
     max_packet_len=MAX_PACKET_LEN,
     max_file_segment_len=FILE_SEGMENT_SIZE,
@@ -235,14 +235,14 @@ def main() -> None:
     with open(SOURCE_FILE, "w") as file:
         file.write(FILE_CONTENT)
 
-    remote_cfg_table = RemoteEntityCfgTable()
+    remote_cfg_table = RemoteEntityConfigTable()
     remote_cfg_table.add_config(REMOTE_CFG_FOR_SOURCE_ENTITY)
     remote_cfg_table.add_config(REMOTE_CFG_FOR_DEST_ENTITY)
 
     # Enable all indications.
-    src_indication_cfg = IndicationCfg()
+    src_indication_cfg = IndicationConfig()
     src_fault_handler = CfdpFaultHandler()
-    src_entity_cfg = LocalEntityCfg(SOURCE_ENTITY_ID, src_indication_cfg, src_fault_handler)
+    src_entity_cfg = LocalEntityConfig(SOURCE_ENTITY_ID, src_indication_cfg, src_fault_handler)
     # 16 bit sequence count for transactions.
     src_seq_count_provider = SeqCountProvider(16)
     src_user = CfdpUser("SRC ENTITY")
@@ -262,9 +262,9 @@ def main() -> None:
     )
 
     # Enable all indications.
-    dest_indication_cfg = IndicationCfg()
+    dest_indication_cfg = IndicationConfig()
     dest_fault_handler = CfdpFaultHandler()
-    dest_entity_cfg = LocalEntityCfg(DEST_ENTITY_ID, dest_indication_cfg, dest_fault_handler)
+    dest_entity_cfg = LocalEntityConfig(DEST_ENTITY_ID, dest_indication_cfg, dest_fault_handler)
     dest_user = CfdpUser("DEST ENTITY")
     dest_handler = DestHandler(
         cfg=dest_entity_cfg,

@@ -36,8 +36,8 @@ from tmtccmd.config.cfdp import generic_cfdp_params_to_put_request
 from cfdppy.handler.dest import DestHandler
 from cfdppy.handler.source import SourceHandler
 from cfdppy.mib import (
-    LocalEntityCfg,
-    RemoteEntityCfgTable,
+    LocalEntityConfig,
+    RemoteEntityConfigTable,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ def main() -> None:
 
     basicConfig(level=logging_level)
 
-    remote_cfg_table = RemoteEntityCfgTable()
+    remote_cfg_table = RemoteEntityConfigTable()
     remote_cfg_table.add_config(REMOTE_CFG_OF_REMOTE_ENTITY)
 
     src_fault_handler = CfdpFaultHandler(BASE_STR_SRC)
@@ -89,7 +89,7 @@ def main() -> None:
     src_user = CfdpUser(BASE_STR_SRC, PUT_REQ_QUEUE)
     check_timer_provider = CustomCheckTimerProvider()
     source_handler = SourceHandler(
-        cfg=LocalEntityCfg(LOCAL_ENTITY_ID, INDICATION_CFG, src_fault_handler),
+        cfg=LocalEntityConfig(LOCAL_ENTITY_ID, INDICATION_CFG, src_fault_handler),
         seq_num_provider=src_seq_count_provider,
         remote_cfg_table=remote_cfg_table,
         user=src_user,
@@ -109,7 +109,7 @@ def main() -> None:
     dest_fault_handler = CfdpFaultHandler(BASE_STR_DEST)
     dest_user = CfdpUser(BASE_STR_DEST, PUT_REQ_QUEUE)
     dest_handler = DestHandler(
-        cfg=LocalEntityCfg(LOCAL_ENTITY_ID, INDICATION_CFG, dest_fault_handler),
+        cfg=LocalEntityConfig(LOCAL_ENTITY_ID, INDICATION_CFG, dest_fault_handler),
         user=dest_user,
         remote_cfg_table=remote_cfg_table,
         check_timer_provider=check_timer_provider,

@@ -41,10 +41,10 @@ from spacepackets.cfdp.tlv import (
 from spacepackets.util import ByteFieldU8, ByteFieldU16
 
 from cfdppy import (
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
+    IndicationConfig,
+    LocalEntityConfig,
+    RemoteEntityConfig,
+    RemoteEntityConfigTable,
 )
 from cfdppy.defs import CfdpState
 from cfdppy.handler.dest import (
@@ -73,11 +73,11 @@ class FileInfo:
 class TestDestHandlerBase(TestCase):
     def common_setup(self, trans_mode: TransmissionMode):
         self.setUpPyfakefs()
-        self.indication_cfg = IndicationCfg(True, True, True, True, True, True)
+        self.indication_cfg = IndicationConfig(True, True, True, True, True, True)
         self.fault_handler = FaultHandler()
         self.fault_handler.notice_of_cancellation_cb = MagicMock()
         self.entity_id = ByteFieldU16(2)
-        self.local_cfg = LocalEntityCfg(self.entity_id, self.indication_cfg, self.fault_handler)
+        self.local_cfg = LocalEntityConfig(self.entity_id, self.indication_cfg, self.fault_handler)
         self.src_entity_id = ByteFieldU16(1)
         self.src_pdu_conf = PduConfig(
             source_entity_id=self.src_entity_id,
@@ -95,10 +95,10 @@ class TestDestHandlerBase(TestCase):
         self.cfdp_user.metadata_recv_indication = MagicMock()
         self.cfdp_user.transaction_finished_indication = MagicMock()
         self.file_segment_len = 128
-        self.remote_cfg_table = RemoteEntityCfgTable()
+        self.remote_cfg_table = RemoteEntityConfigTable()
         self.timeout_nak_procedure_seconds = 0.05
         self.timeout_positive_ack_procedure_seconds = 0.05
-        self.remote_cfg = RemoteEntityCfg(
+        self.remote_cfg = RemoteEntityConfig(
             entity_id=self.src_entity_id,
             check_limit=2,
             crc_type=ChecksumType.CRC_32,

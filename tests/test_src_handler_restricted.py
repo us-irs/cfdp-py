@@ -32,11 +32,11 @@ from spacepackets.util import ByteFieldU16
 
 from cfdppy import (
     CfdpState,
-    IndicationCfg,
-    LocalEntityCfg,
+    IndicationConfig,
+    LocalEntityConfig,
     PutRequest,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
+    RemoteEntityConfig,
+    RemoteEntityConfigTable,
     RestrictedFilestore,
 )
 from cfdppy.handler import SourceHandler
@@ -50,10 +50,10 @@ class TestSrcHandlerRestrictedFileStore(TestCase):
         super().setUp()
         self.temp_dir = Path(tempfile.mkdtemp())
         self.closure_requested = False
-        self.indication_cfg = IndicationCfg(True, True, True, True, True, True)
+        self.indication_cfg = IndicationConfig(True, True, True, True, True, True)
         self.fault_handler = MagicMock()
         self.fault_handler.mock_add_spec(spec=FaultHandler, spec_set=True)
-        self.local_cfg = LocalEntityCfg(ByteFieldU16(1), self.indication_cfg, self.fault_handler)
+        self.local_cfg = LocalEntityConfig(ByteFieldU16(1), self.indication_cfg, self.fault_handler)
         self.cfdp_user = CfdpUser(vfs=RestrictedFilestore(self.temp_dir))
         self.seq_num_provider = SeqCountProvider(bit_width=8)
         self.expected_seq_num = 0
@@ -63,7 +63,7 @@ class TestSrcHandlerRestrictedFileStore(TestCase):
         self.file_segment_len = 64
         self.max_packet_len = 256
         self.positive_ack_intvl_seconds = 0.02
-        self.default_remote_cfg = RemoteEntityCfg(
+        self.default_remote_cfg = RemoteEntityConfig(
             entity_id=self.dest_id,
             max_packet_len=self.max_packet_len,
             max_file_segment_len=self.file_segment_len,
@@ -77,7 +77,7 @@ class TestSrcHandlerRestrictedFileStore(TestCase):
         )
         self.alternative_remote_cfg = copy.copy(self.default_remote_cfg)
         self.alternative_remote_cfg.entity_id = self.alternative_dest_id
-        self.remote_cfg_table = RemoteEntityCfgTable()
+        self.remote_cfg_table = RemoteEntityConfigTable()
         self.remote_cfg_table.add_config(self.default_remote_cfg)
         self.remote_cfg_table.add_config(self.alternative_remote_cfg)
         # Create an empty file and send it via CFDP

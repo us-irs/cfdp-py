@@ -56,7 +56,7 @@ from cfdppy.exceptions import (
     SourceFileDoesNotExist,
     UnretrievedPdusToBeSent,
 )
-from cfdppy.mib import CheckTimerProvider, EntityType, RemoteEntityCfgTable
+from cfdppy.mib import CheckTimerProvider, EntityType, RemoteEntityConfigTable
 from cfdppy.user import TransactionFinishedParams, TransactionParams
 
 from .common import _PositiveAckProcedureParams
@@ -69,8 +69,8 @@ if TYPE_CHECKING:
 
     from cfdppy import (
         CfdpUserBase,
-        LocalEntityCfg,
-        RemoteEntityCfg,
+        LocalEntityConfig,
+        RemoteEntityConfig,
     )
     from cfdppy.request import PutRequest
 
@@ -146,7 +146,7 @@ class _TransferFieldWrapper:
         self.ack_params: _AckedModeParams = _AckedModeParams()
         self.fp: _SourceFileParams = _SourceFileParams.empty()
         self.finished_params: FinishedParams | None = None
-        self.remote_cfg: RemoteEntityCfg | None = None
+        self.remote_cfg: RemoteEntityConfig | None = None
         self.closure_requested: bool = False
         self.pdu_conf = PduConfig.empty()
         self.pdu_conf.source_entity_id = local_entity_id
@@ -237,9 +237,9 @@ class SourceHandler:
 
     def __init__(
         self,
-        cfg: LocalEntityCfg,
+        cfg: LocalEntityConfig,
         user: CfdpUserBase,
-        remote_cfg_table: RemoteEntityCfgTable,
+        remote_cfg_table: RemoteEntityConfigTable,
         check_timer_provider: CheckTimerProvider,
         seq_num_provider: ProvidesSeqCount,
     ):
@@ -457,7 +457,7 @@ class SourceHandler:
             Invalid PDU file directive type.
         PduIgnoredForSource
             The specified PDU can not be handled in the current state.
-        NoRemoteEntityCfgFound
+        NoRemoteEntityConfigFound
             No remote configuration found for specified destination entity.
         InvalidSourceId
             Source ID not identical to local entity ID.

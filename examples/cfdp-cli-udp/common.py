@@ -37,8 +37,8 @@ from cfdppy.mib import (
     CheckTimerProvider,
     DefaultFaultHandlerBase,
     EntityType,
-    IndicationCfg,
-    RemoteEntityCfg,
+    IndicationConfig,
+    RemoteEntityConfig,
 )
 from cfdppy.user import (
     CfdpUserBase,
@@ -58,13 +58,13 @@ _LOGGER = logging.getLogger(__name__)
 LOCAL_ENTITY_ID = ByteFieldU16(1)
 REMOTE_ENTITY_ID = ByteFieldU16(2)
 # Enable all indications for both local and remote entity.
-INDICATION_CFG = IndicationCfg()
+INDICATION_CFG = IndicationConfig()
 
 FILE_CONTENT = "Hello World!\n"
 FILE_SEGMENT_SIZE = 256
 MAX_PACKET_LEN = 512
 
-REMOTE_CFG_OF_LOCAL_ENTITY = RemoteEntityCfg(
+REMOTE_CFG_OF_LOCAL_ENTITY = RemoteEntityConfig(
     entity_id=LOCAL_ENTITY_ID,
     max_packet_len=MAX_PACKET_LEN,
     max_file_segment_len=FILE_SEGMENT_SIZE,
