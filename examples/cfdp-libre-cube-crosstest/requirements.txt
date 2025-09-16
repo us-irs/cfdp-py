@@ -1,1 +1,3 @@
 cfdp @ git+https://gitlab.com/librecube/lib/python-cfdp.git
+# Install local cfdp-py interactively
+-e ../..

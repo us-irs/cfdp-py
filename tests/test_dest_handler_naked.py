@@ -3,7 +3,7 @@ import struct
 import time
 from typing import cast
 
-from crcmod.predefined import mkPredefinedCrcFun
+import fastcrc
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ChecksumType,
@@ -60,8 +60,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         data = b"Hello World\n"
         with open(self.src_file_path, "wb") as of:
             of.write(data)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(data))
+        crc32 = fastcrc.crc32.iso_hdlc(data)
         file_size = self.src_file_path.stat().st_size
         self._generic_regular_transfer_init(
             file_size=file_size,
@@ -362,15 +361,13 @@ class TestCfdpDestHandler(TestDestHandlerBase):
     def _random_data_two_file_segments(self):
         rand_data = random.randbytes(round(self.file_segment_len * 1.3))
         file_size = len(rand_data)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(rand_data))
+        crc32 = struct.pack("!I", fastcrc.crc32.iso_hdlc(rand_data))
         return FileInfo(file_size=file_size, crc32=crc32, rand_data=rand_data)
 
     def _generic_check_limit_test(self, file_data: bytes):
         with open(self.src_file_path, "wb") as of:
             of.write(file_data)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_data))
+        crc32 = struct.pack("!I", fastcrc.crc32.iso_hdlc(file_data))
         file_size = self.src_file_path.stat().st_size
         self._generic_regular_transfer_init(
             file_size=file_size,

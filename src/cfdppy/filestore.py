@@ -7,10 +7,11 @@ import logging
 import os
 import platform
 import shutil
+import struct
 import subprocess
 from typing import TYPE_CHECKING, BinaryIO
 
-from crcmod.predefined import PredefinedCrc
+import fastcrc
 from spacepackets.cfdp.defs import NULL_CHECKSUM_U32, ChecksumType
 from spacepackets.cfdp.tlv import FilestoreResponseStatusCode
 
@@ -351,9 +352,12 @@ class NativeFilestore(VirtualFilestore):
             return "crc32c"
         raise ChecksumNotImplemented(checksum_type)
 
+    """
+
     def _generate_crc_calculator(self, checksum_type: ChecksumType) -> PredefinedCrc:
         self._verify_checksum(checksum_type)
         return PredefinedCrc(self.checksum_type_to_crcmod_str(checksum_type))
+    """
 
     def calculate_checksum(
         self,
@@ -370,16 +374,26 @@ class NativeFilestore(VirtualFilestore):
             return calc_modular_checksum(file_path)
         if segment_len == 0:
             raise ValueError("segment length can not be 0")
-        crc_obj = self._generate_crc_calculator(checksum_type)
+        func = None
+        if checksum_type == ChecksumType.CRC_32:
+            func = fastcrc.crc32.iso_hdlc
+        elif checksum_type == ChecksumType.CRC_32C:
+            func = fastcrc.crc32.iscsi
+        else:
+            raise ChecksumNotImplemented(checksum_type)
+        current = func(b"")
         current_offset = 0
         # Calculate the file CRC
         with open(file_path, "rb") as file:
             while current_offset < size_to_verify:
                 read_len = min(segment_len, size_to_verify - current_offset)
                 if read_len > 0:
-                    crc_obj.update(self.read_from_opened_file(file, current_offset, read_len))
+                    current = func(
+                        self.read_from_opened_file(file, current_offset, read_len), current
+                    )
                 current_offset += read_len
-            return crc_obj.digest()
+            assert current is not None
+            return struct.pack("!I", current)
 
 
 HostFilestore = NativeFilestore
