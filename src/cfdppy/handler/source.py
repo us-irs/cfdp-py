@@ -91,7 +91,6 @@ class TransactionStep(enum.Enum):
     SENDING_EOF = 6
     WAITING_FOR_EOF_ACK = 7
     WAITING_FOR_FINISHED = 8
-    SENDING_ACK_OF_FINISHED = 9
     NOTICE_OF_COMPLETION = 10
 
 
@@ -789,9 +788,7 @@ class SourceHandler:
         self._params.finished_params = finished_pdu.finished_params
         if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             self._prepare_finished_ack_packet(finished_pdu.condition_code)
-            self.states.step = TransactionStep.SENDING_ACK_OF_FINISHED
-        else:
-            self.states.step = TransactionStep.NOTICE_OF_COMPLETION
+        self.states.step = TransactionStep.NOTICE_OF_COMPLETION
 
     def _notice_of_completion(self) -> None:
         if self.cfg.indication_cfg.transaction_finished_indication_required:
@@ -822,8 +819,6 @@ class SourceHandler:
             self.states.step = self._params.ack_params.step_before_retransmission
         elif self.states.step == TransactionStep.SENDING_FILE_DATA:
             self._handle_file_data_sent()
-        elif self.states.step == TransactionStep.SENDING_ACK_OF_FINISHED:
-            self.states.step = TransactionStep.NOTICE_OF_COMPLETION
 
     def _handle_eof_sent(self, cancel_eof: bool) -> None:
         if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:

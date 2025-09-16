@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Bump allowed `spacepackets` to >=0.30, <=0.31
 - Transition CRC library from `crcmod` to `fastcrc`
 
+## Removed
+
+- `TransactionStep.SENDING_ACK_OF_FINISHED` for source handler which is not required anymore.
+
 # [v0.5.1] 2025-02-10
 
 - Bump allowed `spacepackets` to v0.28.0

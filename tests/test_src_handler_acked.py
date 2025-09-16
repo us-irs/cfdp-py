@@ -241,7 +241,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         )
         pdu_conf = eof_pdu.pdu_header.pdu_conf
         self._insert_eof_ack_packet(eof_pdu)
-        self._insert_finished_pdu(pdu_conf)
+        self._insert_finished_pdu(pdu_conf, 1)
         self._acknowledge_finished_pdu(pdu_conf)
         self.source_handler.state_machine()
         self._verify_transaction_finished_indication(transaction_id, expected_finished_params)
@@ -253,7 +253,7 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
             TransactionStep.IDLE,
         )
 
-    def _insert_finished_pdu(self, pdu_conf: PduConfig):
+    def _insert_finished_pdu(self, pdu_conf: PduConfig, expected_num_of_packets: int):
         finished_pdu = FinishedPdu(
             pdu_conf,
             FinishedParams(
@@ -265,9 +265,9 @@ class TestSourceHandlerAcked(TestCfdpSourceHandler):
         self.source_handler.state_machine(finished_pdu)
         self._state_checker(
             None,
-            True,
-            CfdpState.BUSY,
-            TransactionStep.SENDING_ACK_OF_FINISHED,
+            expected_num_of_packets,
+            CfdpState.IDLE,
+            TransactionStep.IDLE,
         )
 
     def _verify_eof_pdu_for_positive_ack(self, expected_eof: EofPdu, expected_ack_counter: int):
