@@ -331,11 +331,13 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self.dest_handler.state_machine()
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_METADATA)
         self._generic_verify_missing_segment_requested(0, 0, [(0, 0)])
+        # The EOF has a file size of 0, so the file size parameter is already set.
         fsm_res = self._generic_transfer_init(
             0,
             expected_init_packets=0,
             expected_init_state=CfdpState.BUSY,
             expected_init_step=TransactionStep.WAITING_FOR_METADATA,
+            expected_file_size=0
         )
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)

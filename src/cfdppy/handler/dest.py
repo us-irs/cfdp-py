@@ -81,7 +81,6 @@ class CompletionDisposition(enum.Enum):
 @dataclass
 class _DestFileParams(_FileParamsBase):
     file_name: Path
-    file_size_eof: int | None
 
     @classmethod
     def empty(cls) -> _DestFileParams:
@@ -91,14 +90,13 @@ class _DestFileParams(_FileParamsBase):
             crc32=b"",
             file_size=None,
             file_name=Path(),
-            file_size_eof=None,
+            # file_size_eof=None,
             metadata_only=False,
         )
 
     def reset(self) -> None:
         super().reset()
         self.file_name = Path()
-        self.file_size_eof = None
 
 
 class TransactionStep(enum.Enum):
@@ -221,6 +219,8 @@ class LostSegmentTracker:
 @dataclass
 class _AckedModeParams:
     lost_seg_tracker: LostSegmentTracker = field(default=LostSegmentTracker())
+    # Extra parameter: Missing metadata is not tracked inside the lost segment tracker, so we
+    # need an extra parameter for this.
     metadata_missing: bool = False
     last_start_offset: int = 0
     last_end_offset: int = 0
@@ -596,7 +596,7 @@ class DestHandler:
 
     def _handle_eof_without_previous_metadata(self, eof_pdu: EofPdu) -> None:
         self._params.fp.progress = eof_pdu.file_size
-        self._params.fp.file_size_eof = eof_pdu.file_size
+        self._params.fp.file_size = eof_pdu.file_size
         self._params.acked_params.metadata_missing = True
         if self._params.fp.progress > 0:
             # Clear old list, deferred procedure for the whole file is now active.
@@ -829,8 +829,8 @@ class DestHandler:
             self._params.finished_params.file_status = FileStatus.FILE_RETAINED
 
             if (
-                self._params.fp.file_size_eof is not None
-                and (offset + len(file_data_pdu.file_data) > self._params.fp.file_size_eof)
+                self._params.fp.file_size is not None
+                and (offset + len(file_data_pdu.file_data) > self._params.fp.file_size)
                 and (
                     self._declare_fault(ConditionCode.FILE_SIZE_ERROR)
                     != FaultHandlerCode.IGNORE_ERROR
@@ -892,7 +892,7 @@ class DestHandler:
         if not self._params.acked_params.deferred_lost_segment_detection_active:
             return
         assert self._params.remote_cfg is not None
-        assert self._params.fp.file_size_eof is not None
+        assert self._params.fp.file_size is not None
         if (
             self._params.acked_params.lost_seg_tracker.num_lost_segments == 0
             and not self._params.acked_params.metadata_missing
@@ -938,7 +938,7 @@ class DestHandler:
                     NakPdu(
                         self._params.pdu_conf,
                         0,
-                        self._params.fp.file_size_eof,
+                        self._params.fp.file_size,
                         next_segment_reqs,
                     )
                 )
@@ -948,7 +948,7 @@ class DestHandler:
                 NakPdu(
                     self._params.pdu_conf,
                     0,
-                    self._params.fp.file_size_eof,
+                    self._params.fp.file_size,
                     next_segment_reqs,
                 )
             )
@@ -959,7 +959,7 @@ class DestHandler:
     def _handle_eof_pdu(self, eof_pdu: EofPdu) -> bool | None:
         """Returns whether to exit the FSM prematurely."""
         self._params.fp.crc32 = eof_pdu.file_checksum
-        self._params.fp.file_size_eof = eof_pdu.file_size
+        self._params.fp.file_size = eof_pdu.file_size
         if self.cfg.indication_cfg.eof_recv_indication_required:
             assert self._params.transaction_id is not None
             self.user.eof_recv_indication(self._params.transaction_id)
@@ -975,7 +975,7 @@ class DestHandler:
                 EntityIdTlv(self._params.remote_cfg.entity_id.as_bytes),
             )
             # Store this as progress for the checksum calculation.
-            self._params.fp.progress = self._params.fp.file_size_eof
+            self._params.fp.progress = self._params.fp.file_size
             self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
         self._file_transfer_complete_transition()
         return False
@@ -983,22 +983,18 @@ class DestHandler:
     def _handle_no_error_eof(self) -> bool:
         """Returns whether the transfer can be completed regularly."""
         # CFDP 4.6.1.2.9: Declare file size error if progress exceeds file size
-        if self._params.fp.progress > self._params.fp.file_size_eof:  # type: ignore
+        if self._params.fp.progress > self._params.fp.file_size:  # type: ignore
             if self._declare_fault(ConditionCode.FILE_SIZE_ERROR) != FaultHandlerCode.IGNORE_ERROR:
                 return False
         elif (
-            self._params.fp.progress < self._params.fp.file_size_eof  # type: ignore
+            self._params.fp.progress < self._params.fp.file_size # type: ignore
         ) and self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             # CFDP 4.6.4.3.1: The end offset of the last received file segment and the file
             # size as stated in the EOF PDU is not the same, so we need to add that segment to
             # the lost segments for the deferred lost segment detection procedure.
             self._params.acked_params.lost_seg_tracker.add_lost_segment(
-                (self._params.fp.progress, self._params.fp.file_size_eof)  # type: ignore
+                (self._params.fp.progress, self._params.fp.file_size)  # type: ignore
             )
-        if self._params.fp.file_size_eof != self._params.fp.file_size:
-            # Can or should this ever happen for a No Error EOF? Treat this like a non-fatal
-            # error for now.
-            _LOGGER.warning("missmatch of EOF file size and Metadata File Size for success EOF")
         if (
             self.transmission_mode == TransmissionMode.UNACKNOWLEDGED
             and not self._checksum_verify()
@@ -1019,8 +1015,8 @@ class DestHandler:
             self.states.step = TransactionStep.WAITING_FOR_MISSING_DATA
         self._params.acked_params.deferred_lost_segment_detection_active = True
         self._params.acked_params.lost_seg_tracker.coalesce_lost_segments()
-        self._params.acked_params.last_start_offset = self._params.fp.file_size_eof  # type: ignore
-        self._params.acked_params.last_end_offset = self._params.fp.file_size_eof  # type: ignore
+        self._params.acked_params.last_start_offset = self._params.fp.file_size # type: ignore
+        self._params.acked_params.last_end_offset = self._params.fp.file_size # type: ignore
         self._deferred_lost_segment_handling()
 
     def _prepare_eof_ack_packet(self) -> None:
