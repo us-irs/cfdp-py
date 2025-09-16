@@ -103,24 +103,28 @@ class TransactionStep(enum.Enum):
     IDLE = 0
     TRANSACTION_START = 1
     """Metadata was received, which triggered a transaction start."""
+
     WAITING_FOR_METADATA = 2
     """Special state which is only used for acknowledged mode. The CFDP entity is still waiting
     for a missing metadata PDU to be re-sent. Until then, all arriving file data PDUs will only
     update the internal lost segment tracker. When the EOF PDU arrives, the state will be left.
     Please note that deferred lost segment handling might also be active when this state is set."""
+
     RECEIVING_FILE_DATA = 3
+
     RECV_FILE_DATA_WITH_CHECK_LIMIT_HANDLING = 4
     """This is the check timer step as specified in chapter 4.6.3.3 b) of the standard.
     The destination handler will still check for file data PDUs which might lead to a full
     file transfer completion."""
-    SENDING_EOF_ACK_PDU = 5
-    """Sending the ACK (EOF) packet."""
+
     WAITING_FOR_MISSING_DATA = 6
     """Only relevant for acknowledged mode: Wait for lost metadata and file segments as part of
     the deferred lost segments detection procedure."""
+
     TRANSFER_COMPLETION = 7
     """File transfer complete. Perform checksum verification and notice of completion. Please
     note that this does not necessarily mean that the file transfer was completed successfully."""
+
     SENDING_FINISHED_PDU = 8
     WAITING_FOR_FINISHED_ACK = 9
 
@@ -525,7 +529,7 @@ class DestHandler:
                 )
 
     def __non_idle_fsm(self, packet: GenericPduPacket | None) -> None:
-        self._fsm_advancement_after_packets_were_sent()
+        self._assert_all_packets_were_sent()
         pdu_holder = PduHolder(packet)
         if (
             self.states.step
@@ -555,20 +559,10 @@ class DestHandler:
         if self.states.step == TransactionStep.WAITING_FOR_FINISHED_ACK:
             self._handle_waiting_for_finished_ack(pdu_holder)
 
-    def _fsm_advancement_after_packets_were_sent(self) -> None:
+    def _assert_all_packets_were_sent(self) -> None:
         """Advance the internal FSM after all packets to be sent were retrieved from the handler."""
         if len(self._pdus_to_be_sent) > 0:
             raise UnretrievedPdusToBeSent(f"{len(self._pdus_to_be_sent)} packets left to send")
-        if self.states.step == TransactionStep.SENDING_EOF_ACK_PDU:
-            if (
-                self._params.acked_params.lost_seg_tracker.num_lost_segments > 0
-                or self._params.acked_params.metadata_missing
-            ):
-                self._start_deferred_lost_segment_handling()
-            else:
-                if self._params.completion_disposition != CompletionDisposition.CANCELED:
-                    self._checksum_verify()
-                self.states.step = TransactionStep.TRANSFER_COMPLETION
 
     def _start_transaction(self, metadata_pdu: MetadataPdu) -> bool:
         if self.states.state != CfdpState.IDLE:
@@ -610,7 +604,19 @@ class DestHandler:
             assert self._params.transaction_id is not None
             self.user.eof_recv_indication(self._params.transaction_id)
         self._prepare_eof_ack_packet()
-        self.states.step = TransactionStep.SENDING_EOF_ACK_PDU
+        self._eof_ack_pdu_done()
+
+    def _eof_ack_pdu_done(self) -> None:
+        if (
+            self._params.acked_params.lost_seg_tracker.num_lost_segments > 0
+            or self._params.acked_params.metadata_missing
+        ):
+            self._start_deferred_lost_segment_handling()
+
+        else:
+            if self._params.completion_disposition != CompletionDisposition.CANCELED:
+                self._checksum_verify()
+            self.states.step = TransactionStep.TRANSFER_COMPLETION
 
     def _start_transaction_missing_metadata_recv_fd(self, fd_pdu: FileDataPdu) -> None:
         self._common_first_packet_not_metadata_pdu_handler(fd_pdu)
@@ -987,7 +993,7 @@ class DestHandler:
             if self._declare_fault(ConditionCode.FILE_SIZE_ERROR) != FaultHandlerCode.IGNORE_ERROR:
                 return False
         elif (
-            self._params.fp.progress < self._params.fp.file_size # type: ignore
+            self._params.fp.progress < self._params.fp.file_size  # type: ignore
         ) and self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             # CFDP 4.6.4.3.1: The end offset of the last received file segment and the file
             # size as stated in the EOF PDU is not the same, so we need to add that segment to
@@ -1015,8 +1021,8 @@ class DestHandler:
             self.states.step = TransactionStep.WAITING_FOR_MISSING_DATA
         self._params.acked_params.deferred_lost_segment_detection_active = True
         self._params.acked_params.lost_seg_tracker.coalesce_lost_segments()
-        self._params.acked_params.last_start_offset = self._params.fp.file_size # type: ignore
-        self._params.acked_params.last_end_offset = self._params.fp.file_size # type: ignore
+        self._params.acked_params.last_start_offset = self._params.fp.file_size  # type: ignore
+        self._params.acked_params.last_end_offset = self._params.fp.file_size  # type: ignore
         self._deferred_lost_segment_handling()
 
     def _prepare_eof_ack_packet(self) -> None:
@@ -1055,7 +1061,7 @@ class DestHandler:
             self.states.step = TransactionStep.TRANSFER_COMPLETION
         elif self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             self._prepare_eof_ack_packet()
-            self.states.step = TransactionStep.SENDING_EOF_ACK_PDU
+            self._eof_ack_pdu_done()
 
     def _trigger_notice_of_completion_canceled(
         self, condition_code: ConditionCode, fault_location: EntityIdTlv
@@ -1095,8 +1101,6 @@ class DestHandler:
             self.user.transaction_finished_indication(finished_indic_params)
 
     def _prepare_finished_pdu(self) -> None:
-        if self.states.packets_ready:
-            raise UnretrievedPdusToBeSent
         # TODO: Fault location handling. Set remote entity ID for file copy
         # operations cancelled with an EOF (Cancel) PDU, and the local ID for file
         # copy operations cancelled with the local API.

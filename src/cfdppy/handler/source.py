@@ -80,11 +80,14 @@ _LOGGER = logging.getLogger(__name__)
 class TransactionStep(enum.Enum):
     IDLE = 0
     TRANSACTION_START = 1
+
     # The following three are used for the Copy File Procedure
     SENDING_METADATA = 3
     SENDING_FILE_DATA = 4
+
     RETRANSMITTING = 5
     """Re-transmitting missing packets in acknowledged mode."""
+
     SENDING_EOF = 6
     WAITING_FOR_EOF_ACK = 7
     WAITING_FOR_FINISHED = 8
