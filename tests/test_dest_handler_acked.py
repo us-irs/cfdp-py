@@ -1,6 +1,7 @@
 import struct
 import time
 
+import fastcrc
 from spacepackets.cfdp import (
     NULL_CHECKSUM_U32,
     ConditionCode,
@@ -18,7 +19,6 @@ from spacepackets.cfdp.pdu import (
     FinishedPdu,
     TransactionStatus,
 )
-from spacepackets.crc import mkPredefinedCrcFun
 
 from cfdppy.defs import CfdpState
 from cfdppy.handler.dest import FsmResult, TransactionStep
@@ -45,12 +45,12 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         # Basic acknowledged empty file transfer.
         self._generic_regular_transfer_init(len(file_content))
         self._insert_file_segment(file_content, 0)
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
@@ -99,11 +99,11 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._generic_regular_transfer_init(len(file_content))
         self._insert_file_segment(file_content[0:5], 0)
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
@@ -126,8 +126,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._generic_regular_transfer_init(len(file_content))
         # A middle segment is missing now, with the expected lost segment tuple to be (3, 6). The
         # lost segment is immediately supplied.
@@ -137,7 +137,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # Insert the missing file content.
         self._insert_file_segment(file_content[3:6], 3, expected_progress=12)
         # All lost segments were delivered, regular transfer finish.
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
@@ -148,8 +148,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._generic_regular_transfer_init(len(file_content))
         # Simulate the second segment being lost, with more than one segment following after that.
         self._insert_file_segment(file_content[0:2], 0)
@@ -160,7 +160,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # Now insert the missing segment.
         self._insert_file_segment(file_content[2:4], 2, expected_progress=12)
         # All lost segments were delivered, regular transfer finish.
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
@@ -171,8 +171,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._generic_regular_transfer_init(len(file_content))
         self._insert_file_segment(file_content[0:2], 0)
         self._insert_file_segment(file_content[4:6], 4, 1)
@@ -187,7 +187,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._insert_file_segment(file_content[2:4], 2, expected_progress=12)
         self._insert_file_segment(file_content[6:8], 6, expected_progress=12)
         # All lost segments were delivered, regular transfer finish.
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
@@ -198,8 +198,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._generic_regular_transfer_init(len(file_content))
         # Missing middle segment
         self._insert_file_segment(file_content[0:2], 0)
@@ -208,7 +208,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_missing_segment_requested(0, len(file_content), [(2, 6)])
 
         # All lost segments were delivered, regular transfer finish.
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
@@ -230,8 +230,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._generic_regular_transfer_init(len(file_content))
         self._insert_file_segment(file_content[0:2], 0)
         self._insert_file_segment(file_content[4:6], 4, 1)
@@ -242,7 +242,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._insert_file_segment(file_content[8:], 8, 1)
         self._generic_verify_missing_segment_requested(0, len(file_content), [(6, 8)])
 
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
@@ -274,8 +274,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         file_content = b"Hello World!"
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._insert_file_segment(
             file_content[0:2],
             0,
@@ -308,7 +308,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             2,
         )
         # All lost segments were delivered, regular transfer finish.
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
@@ -337,8 +337,8 @@ class TestDestHandlerAcked(TestDestHandlerBase):
     def _generic_deferred_lost_segment_handling_with_timeout(self, file_content: bytes):
         with open(self.src_file_path, "wb") as of:
             of.write(file_content)
-        crc32_func = mkPredefinedCrcFun("crc32")
-        crc32 = struct.pack("!I", crc32_func(file_content))
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        crc32_bytes = struct.pack("!I", crc32)
         self._generic_regular_transfer_init(len(file_content))
         self._insert_file_segment(file_content[0:2], 0)
         self._insert_file_segment(file_content[4:6], 4, 1)
@@ -350,7 +350,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_missing_segment_requested(0, len(file_content), [(6, 8)])
 
         # This should trigger deferred EOF handling.
-        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
+        fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32_bytes)
         self._generic_eof_recv_indication_check(fsm_res)
         self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)

@@ -133,12 +133,14 @@ class RestrictedFilestore(NativeFilestore):
 
     def verify_checksum(
         self,
-        checksum: bytes,
+        checksum: int | bytes,
         checksum_type: ChecksumType,
         file_path: Path,
         size_to_verify: int,
         segment_len: int = 4096,
     ) -> bool:
+        if isinstance(checksum, int):
+            checksum = checksum.to_bytes(4, "big")
         """Verify checksum of file."""
         return super().verify_checksum(
             checksum=checksum,

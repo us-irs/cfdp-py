@@ -1,13 +1,14 @@
 from __future__ import annotations  # Python 3.9 compatibility for | syntax
 
 import copy
+import struct
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
-from crcmod.predefined import PredefinedCrc
+import fastcrc
 from pyfakefs.fake_filesystem_unittest import TestCase
 from spacepackets.cfdp import (
     ChecksumType,
@@ -122,16 +123,18 @@ class TestCfdpSourceHandler(TestCase):
             closure_requested=None,
         )
         metadata_pdu, transaction_id = self._start_source_transaction(put_req)
-        crc32 = PredefinedCrc("crc32").digest()
+        crc32 = fastcrc.crc32.iso_hdlc(b"")
         eof_pdu = self._handle_eof_pdu(transaction_id, crc32, 0)
         return transaction_id, metadata_pdu, eof_pdu
 
     def _handle_eof_pdu(
         self,
         transaction_id: TransactionId,
-        expected_checksum: bytes,
+        expected_checksum: int | bytes,
         expected_file_size: int,
     ) -> EofPdu:
+        if isinstance(expected_checksum, int):
+            expected_checksum = struct.pack("!I", expected_checksum)
         self.assertEqual(self.source_handler.transaction_seq_num, transaction_id.seq_num)
         transmission_mode = self.source_handler.transmission_mode
         fsm_res = self.source_handler.state_machine_no_packet()
@@ -205,9 +208,7 @@ class TestCfdpSourceHandler(TestCase):
         return transaction_id, metadata_pdu, file_data_pdu, eof_pdu
 
     def _gen_crc32(self, file_content: bytes) -> bytes:
-        crc32 = PredefinedCrc("crc32")
-        crc32.update(file_content)
-        return crc32.digest()
+        return struct.pack("!I", fastcrc.crc32.iso_hdlc(file_content))
 
     def _generate_file(self, path: Path, file_content: bytes):
         with open(path, "wb") as of:

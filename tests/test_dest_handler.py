@@ -224,7 +224,7 @@ class TestDestHandlerBase(TestCase):
         )
         return fsm_res
 
-    def _generic_insert_eof_pdu(self, file_size: int, checksum: bytes) -> FsmResult:
+    def _generic_insert_eof_pdu(self, file_size: int, checksum: int | bytes) -> FsmResult:
         eof_pdu = EofPdu(file_size=file_size, file_checksum=checksum, pdu_conf=self.src_pdu_conf)
         fsm_res = self.dest_handler.state_machine(eof_pdu)
         if self.expected_mode == TransmissionMode.UNACKNOWLEDGED:

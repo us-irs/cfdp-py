@@ -27,14 +27,16 @@ classifiers = [
   "Topic :: Scientific/Engineering"
 ]
 dependencies = [
-  "spacepackets>=0.26.0, <=0.28",
-  "crcmod~=1.7",
+  "spacepackets>=0.30,<0.32",
+  "fastcrc~=0.3",
   "deprecation~=2.1",
 ]
 
 [project.optional-dependencies]
 test = [
-    "pyfakefs~=5.2"
+    "pyfakefs~=5.2",
+    "pytest",
+    "coverage"
 ]
 lint = ["ruff"]
 

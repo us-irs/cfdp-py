@@ -1,8 +1,9 @@
+import struct
 import tempfile
 from pathlib import Path
 from unittest import TestCase
 
-from crcmod.predefined import PredefinedCrc
+import fastcrc
 from spacepackets.cfdp import ChecksumType, FilestoreResponseStatusCode
 
 from cfdppy import RestrictedFilestore
@@ -109,8 +110,7 @@ class TestFileSystem(TestCase):
             filestore.create_file(Path("test_file.txt"))
             filestore.write_data(Path("test_file.txt"), data=b"test", offset=None)
 
-            crc = PredefinedCrc(crc_name="crc32")
-            checksum = crc.new(b"test").digest()
+            checksum = fastcrc.crc32.iso_hdlc(b"test")
 
             self.assertTrue(
                 filestore.verify_checksum(
@@ -129,7 +129,7 @@ class TestFileSystem(TestCase):
                 )
             )
             self.assertEqual(
-                checksum,
+                struct.pack("!I", checksum),
                 filestore.calculate_checksum(
                     checksum_type=ChecksumType.CRC_32,
                     file_path=Path("test_file.txt"),

@@ -29,12 +29,25 @@ The following features have not been implemented yet. PRs or notifications for d
 
 You can install this package from PyPI
 
-Install command assuming an active virtual environment:
+For example, using [`uv`](https://docs.astral.sh/uv/)
+
+Setting up virtual environment:
 
 ```sh
-pip install cfdp-py
+uv venv
 ```
 
+Regular install:
+
+```sh
+uv pip install -e .
+```
+
+Interactive install with testing support:
+
+```sh
+uv pip install -e ".[test]"
+```
 
 # Examples
 
@@ -47,14 +60,13 @@ If you want to run the tests, it is recommended to install `pytest` and `coverag
 first. You also have to install the package with the optional `test` feature:
 
 ```sh
-pip install coverage pytest
-pip install cfdp-py[test]
+uv pip install -e ".[test]"
 ```
 
 Running tests regularly:
 
 ```sh
-pytest .
+pytest
 ```
 
 Running tests with coverage:
@@ -91,11 +103,11 @@ make doctest
 Linting:
 
 ```sh
-ruff check .
+ruff check
 ```
 
 Formatting:
 
 ```sh
-ruff format .
+ruff format
 ```
