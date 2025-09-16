@@ -264,6 +264,7 @@ class TestDestHandlerBase(TestCase):
         expected_condition_code: ConditionCode,
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
         expected_fault_location: EntityIdTlv | None = None,
+        empty_file: bool = False,
     ) -> FinishedPdu:
         return self._generic_finished_pdu_check(
             fsm_res,
@@ -272,6 +273,7 @@ class TestDestHandlerBase(TestCase):
             expected_file_status,
             expected_condition_code,
             expected_fault_location=expected_fault_location,
+            empty_file=empty_file,
         )
 
     def _generic_no_error_finished_pdu_check_acked(
@@ -308,6 +310,7 @@ class TestDestHandlerBase(TestCase):
         expected_file_status: FileStatus = FileStatus.FILE_RETAINED,
         expected_condition_code: ConditionCode = ConditionCode.NO_ERROR,
         expected_fault_location: EntityIdTlv | None = None,
+        empty_file: bool = False,
     ) -> FinishedPdu:
         self._state_checker(fsm_res, 1, expected_state, expected_step)
         self.assertTrue(fsm_res.states.packets_ready)
@@ -319,7 +322,7 @@ class TestDestHandlerBase(TestCase):
         finished_pdu = next_pdu.to_finished_pdu()
         self.assertEqual(finished_pdu.condition_code, expected_condition_code)
         self.assertEqual(finished_pdu.file_status, expected_file_status)
-        if expected_condition_code == ConditionCode.NO_ERROR:
+        if expected_condition_code == ConditionCode.NO_ERROR or empty_file:
             self.assertEqual(finished_pdu.delivery_code, DeliveryCode.DATA_COMPLETE)
         else:
             self.assertEqual(finished_pdu.delivery_code, DeliveryCode.DATA_INCOMPLETE)

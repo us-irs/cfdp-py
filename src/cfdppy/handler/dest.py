@@ -616,7 +616,7 @@ class DestHandler:
         ):
             self._start_deferred_lost_segment_handling()
             return
-        self._checksum_verify()
+        assert self._params.fp.crc32 is not None
         self.states.step = TransactionStep.TRANSFER_COMPLETION
 
     def _start_transaction_first_packet_file_data(self, fd_pdu: FileDataPdu) -> None:
@@ -902,7 +902,13 @@ class DestHandler:
             and not self._params.acked_params.metadata_missing
         ):
             # We are done and have received everything.
-            self._checksum_verify()
+            assert self._params.fp.crc32 is not None
+            if self._checksum_verify(self._params.fp.progress, self._params.fp.crc32):
+                self._params.finished_params.delivery_code = DeliveryCode.DATA_COMPLETE
+                self._params.finished_params.condition_code = ConditionCode.NO_ERROR
+            else:
+                self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
+                self._params.finished_params.condition_code = ConditionCode.FILE_CHECKSUM_FAILURE
             self.states.step = TransactionStep.TRANSFER_COMPLETION
             self._params.acked_params.deferred_lost_segment_detection_active = False
             return
@@ -923,6 +929,7 @@ class DestHandler:
             and self._params.acked_params.nak_activity_counter + 1
             == self._params.remote_cfg.nak_timer_expiration_limit
         ):
+            self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
             self._declare_fault(ConditionCode.NAK_LIMIT_REACHED)
             return
         # This is not the first NAK issuance and the timer expired.
@@ -983,8 +990,18 @@ class DestHandler:
             eof_pdu.condition_code,
             EntityIdTlv(self._params.remote_cfg.entity_id.as_bytes),
         )
-        # Store this as progress for the checksum calculation.
-        self._params.fp.progress = self._params.fp.file_size
+        # Store this as progress for the checksum calculation as well.
+        self._params.fp.progress = eof_pdu.file_size
+        if self._params.acked_params.metadata_missing:
+            self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
+            return
+        if self._params.fp.file_size == 0:
+            # Empty file, no file data PDU.
+            self._params.finished_params.delivery_code = DeliveryCode.DATA_COMPLETE
+            return
+        if self._checksum_verify(self._params.fp.progress, self._params.fp.crc32):
+            self._params.finished_params.delivery_code = DeliveryCode.DATA_COMPLETE
+            return
         self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
 
     def _handle_no_error_eof(self) -> bool:
@@ -1004,15 +1021,12 @@ class DestHandler:
             )
         if (
             self.transmission_mode == TransmissionMode.UNACKNOWLEDGED
-            and not self._checksum_verify()
+            and not self._checksum_verify(self._params.fp.progress, self._params.fp.crc32)  # type: ignore
         ):
-            if (
-                self._declare_fault(ConditionCode.FILE_CHECKSUM_FAILURE)
-                != FaultHandlerCode.IGNORE_ERROR
-            ):
-                return False
             self._start_check_limit_handling()
             return False
+        self._params.finished_params.delivery_code = DeliveryCode.DATA_COMPLETE
+        self._params.finished_params.condition_code = ConditionCode.NO_ERROR
         return True
 
     def _start_deferred_lost_segment_handling(self) -> None:
@@ -1035,27 +1049,21 @@ class DestHandler:
         )
         self._add_packet_to_be_sent(ack_pdu)
 
-    def _checksum_verify(self) -> bool:
-        file_delivery_complete = False
+    def _checksum_verify(self, verify_len: int, expected_crc32: bytes) -> bool:
         if (
             self._params.checksum_type == ChecksumType.NULL_CHECKSUM
             or self._params.fp.metadata_only
         ):
-            file_delivery_complete = True
-        else:
-            crc32 = self.user.vfs.calculate_checksum(
-                self._params.checksum_type,
-                self._params.fp.file_name,
-                self._params.fp.progress,
-            )
-            if crc32 == self._params.fp.crc32:
-                file_delivery_complete = True
-            else:
-                self._declare_fault(ConditionCode.FILE_CHECKSUM_FAILURE)
-        if file_delivery_complete:
-            self._params.finished_params.delivery_code = DeliveryCode.DATA_COMPLETE
-            self._params.finished_params.condition_code = ConditionCode.NO_ERROR
-        return file_delivery_complete
+            return True
+        crc32 = self.user.vfs.calculate_checksum(
+            self._params.checksum_type,
+            self._params.fp.file_name,
+            verify_len,
+        )
+        if crc32 == expected_crc32:
+            return True
+        self._declare_fault(ConditionCode.FILE_CHECKSUM_FAILURE)
+        return False
 
     def _file_transfer_complete_transition(self) -> None:
         if self.transmission_mode == TransmissionMode.UNACKNOWLEDGED:
@@ -1126,8 +1134,11 @@ class DestHandler:
     def _check_limit_handling(self) -> None:
         assert self._params.check_timer is not None
         assert self._params.remote_cfg is not None
+        assert self._params.fp.crc32 is not None
         if self._params.check_timer.timed_out():
-            if self._checksum_verify():
+            if self._checksum_verify(self._params.fp.progress, self._params.fp.crc32):
+                self._params.finished_params.delivery_code = DeliveryCode.DATA_COMPLETE
+                self._params.finished_params.condition_code = ConditionCode.NO_ERROR
                 self._file_transfer_complete_transition()
                 return
             if self._params.current_check_count + 1 >= self._params.remote_cfg.check_limit:
