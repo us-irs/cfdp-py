@@ -532,6 +532,7 @@ class SourceHandler:
     def _transaction_start(self) -> None:
         originating_transaction_id = self._check_for_originating_id()
         self._prepare_file_params()
+        assert self._params.fp.file_size is not None
         self._prepare_pdu_conf(self._params.fp.file_size)
         self._get_next_transfer_seq_num()
         self._calculate_max_file_seg_len()
@@ -551,20 +552,22 @@ class SourceHandler:
         contains_proxy_put_response = False
         contains_originating_id = False
         originating_id = None
+        assert self._put_req is not None
         if self._put_req.msgs_to_user is None:
             return None
         for msgs_to_user in self._put_req.msgs_to_user:
             if msgs_to_user.is_reserved_cfdp_message():
                 reserved_cfdp_msg = msgs_to_user.to_reserved_msg_tlv()
-                if reserved_cfdp_msg.is_originating_transaction_id():
-                    contains_originating_id = True
-                    originating_id = reserved_cfdp_msg.get_originating_transaction_id()
-                if (
-                    reserved_cfdp_msg.is_cfdp_proxy_operation()
-                    and reserved_cfdp_msg.get_cfdp_proxy_message_type()
-                    == ProxyMessageType.PUT_RESPONSE
-                ):
-                    contains_proxy_put_response = True
+                if reserved_cfdp_msg is not None:
+                    if reserved_cfdp_msg.is_originating_transaction_id():
+                        contains_originating_id = True
+                        originating_id = reserved_cfdp_msg.get_originating_transaction_id()
+                    if (
+                        reserved_cfdp_msg.is_cfdp_proxy_operation()
+                        and reserved_cfdp_msg.get_cfdp_proxy_message_type()
+                        == ProxyMessageType.PUT_RESPONSE
+                    ):
+                        contains_proxy_put_response = True
         if not contains_proxy_put_response and contains_originating_id:
             return originating_id
         return None
@@ -660,6 +663,7 @@ class SourceHandler:
 
     def _prepare_metadata_base_params_with_metadata(self) -> MetadataParams:
         assert self._params.remote_cfg is not None
+        assert self._put_req is not None
         return MetadataParams(
             dest_file_name=self._put_req.dest_file.as_posix(),
             source_file_name=self._put_req.source_file.as_posix(),
