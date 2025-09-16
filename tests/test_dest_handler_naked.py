@@ -291,7 +291,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         fsm_res = self.dest_handler.state_machine(eof_pdu)
         self.cfdp_user.transaction_finished_indication.assert_called_once()
         finished_args = cast(
-            TransactionFinishedParams,
+            "TransactionFinishedParams",
             self.cfdp_user.transaction_finished_indication.call_args.args[0],
         )
         # At least one segment was stored

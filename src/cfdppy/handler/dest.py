@@ -81,7 +81,6 @@ class CompletionDisposition(enum.Enum):
 @dataclass
 class _DestFileParams(_FileParamsBase):
     file_name: Path
-    file_size_eof: int | None
 
     @classmethod
     def empty(cls) -> _DestFileParams:
@@ -91,38 +90,41 @@ class _DestFileParams(_FileParamsBase):
             crc32=b"",
             file_size=None,
             file_name=Path(),
-            file_size_eof=None,
+            # file_size_eof=None,
             metadata_only=False,
         )
 
     def reset(self) -> None:
         super().reset()
         self.file_name = Path()
-        self.file_size_eof = None
 
 
 class TransactionStep(enum.Enum):
     IDLE = 0
     TRANSACTION_START = 1
     """Metadata was received, which triggered a transaction start."""
+
     WAITING_FOR_METADATA = 2
     """Special state which is only used for acknowledged mode. The CFDP entity is still waiting
     for a missing metadata PDU to be re-sent. Until then, all arriving file data PDUs will only
     update the internal lost segment tracker. When the EOF PDU arrives, the state will be left.
     Please note that deferred lost segment handling might also be active when this state is set."""
+
     RECEIVING_FILE_DATA = 3
+
     RECV_FILE_DATA_WITH_CHECK_LIMIT_HANDLING = 4
     """This is the check timer step as specified in chapter 4.6.3.3 b) of the standard.
     The destination handler will still check for file data PDUs which might lead to a full
     file transfer completion."""
-    SENDING_EOF_ACK_PDU = 5
-    """Sending the ACK (EOF) packet."""
+
     WAITING_FOR_MISSING_DATA = 6
     """Only relevant for acknowledged mode: Wait for lost metadata and file segments as part of
     the deferred lost segments detection procedure."""
+
     TRANSFER_COMPLETION = 7
     """File transfer complete. Perform checksum verification and notice of completion. Please
     note that this does not necessarily mean that the file transfer was completed successfully."""
+
     SENDING_FINISHED_PDU = 8
     WAITING_FOR_FINISHED_ACK = 9
 
@@ -162,6 +164,7 @@ class LostSegmentTracker:
         if len(self.lost_segments) <= 1:
             return
         merged_segments = []
+        # Initialize to the first entry.
         current_start, current_end = next(iter(self.lost_segments.items()))
 
         for seg_start, seg_end in self.lost_segments.items():
@@ -220,6 +223,8 @@ class LostSegmentTracker:
 @dataclass
 class _AckedModeParams:
     lost_seg_tracker: LostSegmentTracker = field(default=LostSegmentTracker())
+    # Extra parameter: Missing metadata is not tracked inside the lost segment tracker, so we
+    # need an extra parameter for this.
     metadata_missing: bool = False
     last_start_offset: int = 0
     last_end_offset: int = 0
@@ -520,11 +525,11 @@ class DestHandler:
                 self._start_transaction(metadata_pdu)
             else:
                 raise ValueError(
-                    f"unexpected configuration error: {pdu_holder.pdu} in " f"IDLE state machine"
+                    f"unexpected configuration error: {pdu_holder.pdu} in IDLE state machine"
                 )
 
     def __non_idle_fsm(self, packet: GenericPduPacket | None) -> None:
-        self._fsm_advancement_after_packets_were_sent()
+        self._assert_all_packets_were_sent()
         pdu_holder = PduHolder(packet)
         if (
             self.states.step
@@ -554,20 +559,10 @@ class DestHandler:
         if self.states.step == TransactionStep.WAITING_FOR_FINISHED_ACK:
             self._handle_waiting_for_finished_ack(pdu_holder)
 
-    def _fsm_advancement_after_packets_were_sent(self) -> None:
+    def _assert_all_packets_were_sent(self) -> None:
         """Advance the internal FSM after all packets to be sent were retrieved from the handler."""
         if len(self._pdus_to_be_sent) > 0:
             raise UnretrievedPdusToBeSent(f"{len(self._pdus_to_be_sent)} packets left to send")
-        if self.states.step == TransactionStep.SENDING_EOF_ACK_PDU:
-            if (
-                self._params.acked_params.lost_seg_tracker.num_lost_segments > 0
-                or self._params.acked_params.metadata_missing
-            ):
-                self._start_deferred_lost_segment_handling()
-            else:
-                if self._params.completion_disposition != CompletionDisposition.CANCELED:
-                    self._checksum_verify()
-                self.states.step = TransactionStep.TRANSFER_COMPLETION
 
     def _start_transaction(self, metadata_pdu: MetadataPdu) -> bool:
         if self.states.state != CfdpState.IDLE:
@@ -595,7 +590,7 @@ class DestHandler:
 
     def _handle_eof_without_previous_metadata(self, eof_pdu: EofPdu) -> None:
         self._params.fp.progress = eof_pdu.file_size
-        self._params.fp.file_size_eof = eof_pdu.file_size
+        self._params.fp.file_size = eof_pdu.file_size
         self._params.acked_params.metadata_missing = True
         if self._params.fp.progress > 0:
             # Clear old list, deferred procedure for the whole file is now active.
@@ -609,11 +604,23 @@ class DestHandler:
             assert self._params.transaction_id is not None
             self.user.eof_recv_indication(self._params.transaction_id)
         self._prepare_eof_ack_packet()
-        self.states.step = TransactionStep.SENDING_EOF_ACK_PDU
+        self._eof_ack_pdu_done()
+
+    def _eof_ack_pdu_done(self) -> None:
+        if (
+            self._params.acked_params.lost_seg_tracker.num_lost_segments > 0
+            or self._params.acked_params.metadata_missing
+        ):
+            self._start_deferred_lost_segment_handling()
+
+        else:
+            if self._params.completion_disposition != CompletionDisposition.CANCELED:
+                self._checksum_verify()
+            self.states.step = TransactionStep.TRANSFER_COMPLETION
 
     def _start_transaction_missing_metadata_recv_fd(self, fd_pdu: FileDataPdu) -> None:
         self._common_first_packet_not_metadata_pdu_handler(fd_pdu)
-        self._handle_fd_without_previous_metadata(True, fd_pdu)
+        self._handle_fd_without_previous_metadata(fd_pdu)
 
     def _handle_finished_pdu_sent(self) -> None:
         if (
@@ -625,19 +632,16 @@ class DestHandler:
             return
         self._reset_internal(False)
 
-    def _handle_fd_without_previous_metadata(self, first_pdu: bool, fd_pdu: FileDataPdu) -> None:
+    def _handle_fd_without_previous_metadata(self, fd_pdu: FileDataPdu) -> None:
         self._params.fp.progress = fd_pdu.offset + len(fd_pdu.file_data)
         if len(fd_pdu.file_data) > 0:
-            start = fd_pdu.offset
-            if first_pdu:
-                start = 0
             # I will just wait until the metadata has been received with re-requesting the file
             # data PDU. How does the standard expect me to process file data PDUs where I do not
             # even know the filenames? How would I even generically do this?
             # I will add this file segment (and all others which came before and might be missing
             # as well) to the lost segment list.
             self._params.acked_params.lost_seg_tracker.add_lost_segment(
-                (start, self._params.fp.progress)
+                (0, self._params.fp.progress)
             )
             # This is a bit tricky: We need to set those variables to an appropriate value so
             # the removal of handled lost segments works properly. However, we can not set the
@@ -649,8 +653,7 @@ class DestHandler:
         # Re-request the metadata PDU.
         if self._params.remote_cfg.immediate_nak_mode:
             lost_segments: list[tuple[int, int]] = []
-            if first_pdu:
-                lost_segments.append((0, 0))
+            lost_segments.append((0, 0))
             if len(fd_pdu.file_data) > 0:
                 lost_segments.append((0, self._params.fp.progress))
             if len(lost_segments) > 0:
@@ -698,7 +701,7 @@ class DestHandler:
         # sender.
         if self._params.remote_cfg is None:
             _LOGGER.warning(
-                "No remote configuration found for remote ID" f" {metadata_pdu.dest_entity_id}"
+                f"No remote configuration found for remote ID {metadata_pdu.dest_entity_id}"
             )
             raise NoRemoteEntityCfgFound(metadata_pdu.dest_entity_id)
         if not self._params.fp.metadata_only:
@@ -753,7 +756,7 @@ class DestHandler:
         if packet_holder.pdu is None:
             return
         if packet_holder.pdu_type == PduType.FILE_DATA:
-            self._handle_fd_without_previous_metadata(True, packet_holder.to_file_data_pdu())
+            self._handle_fd_without_previous_metadata(packet_holder.to_file_data_pdu())
         elif packet_holder.pdu_directive_type == DirectiveType.METADATA_PDU:
             self._handle_metadata_packet(packet_holder.to_metadata_pdu())
             if self._params.acked_params.deferred_lost_segment_detection_active:
@@ -832,8 +835,8 @@ class DestHandler:
             self._params.finished_params.file_status = FileStatus.FILE_RETAINED
 
             if (
-                self._params.fp.file_size_eof is not None
-                and (offset + len(file_data_pdu.file_data) > self._params.fp.file_size_eof)
+                self._params.fp.file_size is not None
+                and (offset + len(file_data_pdu.file_data) > self._params.fp.file_size)
                 and (
                     self._declare_fault(ConditionCode.FILE_SIZE_ERROR)
                     != FaultHandlerCode.IGNORE_ERROR
@@ -895,7 +898,7 @@ class DestHandler:
         if not self._params.acked_params.deferred_lost_segment_detection_active:
             return
         assert self._params.remote_cfg is not None
-        assert self._params.fp.file_size_eof is not None
+        assert self._params.fp.file_size is not None
         if (
             self._params.acked_params.lost_seg_tracker.num_lost_segments == 0
             and not self._params.acked_params.metadata_missing
@@ -941,7 +944,7 @@ class DestHandler:
                     NakPdu(
                         self._params.pdu_conf,
                         0,
-                        self._params.fp.file_size_eof,
+                        self._params.fp.file_size,
                         next_segment_reqs,
                     )
                 )
@@ -951,7 +954,7 @@ class DestHandler:
                 NakPdu(
                     self._params.pdu_conf,
                     0,
-                    self._params.fp.file_size_eof,
+                    self._params.fp.file_size,
                     next_segment_reqs,
                 )
             )
@@ -962,7 +965,7 @@ class DestHandler:
     def _handle_eof_pdu(self, eof_pdu: EofPdu) -> bool | None:
         """Returns whether to exit the FSM prematurely."""
         self._params.fp.crc32 = eof_pdu.file_checksum
-        self._params.fp.file_size_eof = eof_pdu.file_size
+        self._params.fp.file_size = eof_pdu.file_size
         if self.cfg.indication_cfg.eof_recv_indication_required:
             assert self._params.transaction_id is not None
             self.user.eof_recv_indication(self._params.transaction_id)
@@ -978,7 +981,7 @@ class DestHandler:
                 EntityIdTlv(self._params.remote_cfg.entity_id.as_bytes),
             )
             # Store this as progress for the checksum calculation.
-            self._params.fp.progress = self._params.fp.file_size_eof
+            self._params.fp.progress = self._params.fp.file_size
             self._params.finished_params.delivery_code = DeliveryCode.DATA_INCOMPLETE
         self._file_transfer_complete_transition()
         return False
@@ -986,22 +989,18 @@ class DestHandler:
     def _handle_no_error_eof(self) -> bool:
         """Returns whether the transfer can be completed regularly."""
         # CFDP 4.6.1.2.9: Declare file size error if progress exceeds file size
-        if self._params.fp.progress > self._params.fp.file_size_eof:  # type: ignore
+        if self._params.fp.progress > self._params.fp.file_size:  # type: ignore
             if self._declare_fault(ConditionCode.FILE_SIZE_ERROR) != FaultHandlerCode.IGNORE_ERROR:
                 return False
         elif (
-            self._params.fp.progress < self._params.fp.file_size_eof  # type: ignore
+            self._params.fp.progress < self._params.fp.file_size  # type: ignore
         ) and self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             # CFDP 4.6.4.3.1: The end offset of the last received file segment and the file
             # size as stated in the EOF PDU is not the same, so we need to add that segment to
             # the lost segments for the deferred lost segment detection procedure.
             self._params.acked_params.lost_seg_tracker.add_lost_segment(
-                (self._params.fp.progress, self._params.fp.file_size_eof)  # type: ignore
+                (self._params.fp.progress, self._params.fp.file_size)  # type: ignore
             )
-        if self._params.fp.file_size_eof != self._params.fp.file_size:
-            # Can or should this ever happen for a No Error EOF? Treat this like a non-fatal
-            # error for now.
-            _LOGGER.warning("missmatch of EOF file size and Metadata File Size for success EOF")
         if (
             self.transmission_mode == TransmissionMode.UNACKNOWLEDGED
             and not self._checksum_verify()
@@ -1022,8 +1021,8 @@ class DestHandler:
             self.states.step = TransactionStep.WAITING_FOR_MISSING_DATA
         self._params.acked_params.deferred_lost_segment_detection_active = True
         self._params.acked_params.lost_seg_tracker.coalesce_lost_segments()
-        self._params.acked_params.last_start_offset = self._params.fp.file_size_eof  # type: ignore
-        self._params.acked_params.last_end_offset = self._params.fp.file_size_eof  # type: ignore
+        self._params.acked_params.last_start_offset = self._params.fp.file_size  # type: ignore
+        self._params.acked_params.last_end_offset = self._params.fp.file_size  # type: ignore
         self._deferred_lost_segment_handling()
 
     def _prepare_eof_ack_packet(self) -> None:
@@ -1062,7 +1061,7 @@ class DestHandler:
             self.states.step = TransactionStep.TRANSFER_COMPLETION
         elif self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
             self._prepare_eof_ack_packet()
-            self.states.step = TransactionStep.SENDING_EOF_ACK_PDU
+            self._eof_ack_pdu_done()
 
     def _trigger_notice_of_completion_canceled(
         self, condition_code: ConditionCode, fault_location: EntityIdTlv
@@ -1102,8 +1101,6 @@ class DestHandler:
             self.user.transaction_finished_indication(finished_indic_params)
 
     def _prepare_finished_pdu(self) -> None:
-        if self.states.packets_ready:
-            raise UnretrievedPdusToBeSent
         # TODO: Fault location handling. Set remote entity ID for file copy
         # operations cancelled with an EOF (Cancel) PDU, and the local ID for file
         # copy operations cancelled with the local API.

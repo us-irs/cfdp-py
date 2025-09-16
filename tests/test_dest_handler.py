@@ -171,6 +171,7 @@ class TestDestHandlerBase(TestCase):
         expected_init_packets: int,
         expected_init_state: CfdpState,
         expected_init_step: TransactionStep,
+        expected_file_size: None | int = None,
         expected_originating_id: TransactionId | None = None,
     ) -> FsmResult:
         checksum_type = ChecksumType.NULL_CHECKSUM
@@ -185,7 +186,7 @@ class TestDestHandlerBase(TestCase):
         )
         file_transfer_init = MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf)
         self._state_checker(None, expected_init_packets, expected_init_state, expected_init_step)
-        self.assertEqual(self.dest_handler.file_size, None)
+        self.assertEqual(self.dest_handler.file_size, expected_file_size)
         fsm_res = self.dest_handler.state_machine(file_transfer_init)
         self.assertEqual(self.dest_handler.file_size, file_size)
         return fsm_res
@@ -210,7 +211,7 @@ class TestDestHandlerBase(TestCase):
             self.cfdp_user.file_segment_recv_indication.assert_called_once()
             self.assertEqual(self.cfdp_user.file_segment_recv_indication.call_count, 1)
             seg_recv_params = cast(
-                FileSegmentRecvdParams,
+                "FileSegmentRecvdParams",
                 self.cfdp_user.file_segment_recv_indication.call_args.args[0],
             )
             self.assertEqual(seg_recv_params.transaction_id, self.transaction_id)
@@ -358,7 +359,7 @@ class TestDestHandlerBase(TestCase):
     ):
         self.cfdp_user.transaction_finished_indication.assert_called_once()
         finished_params_from_callback = cast(
-            TransactionFinishedParams,
+            "TransactionFinishedParams",
             self.cfdp_user.transaction_finished_indication.call_args.args[0],
         )
         self.assertEqual(finished_params_from_callback.transaction_id, self.transaction_id)

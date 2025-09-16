@@ -80,11 +80,14 @@ _LOGGER = logging.getLogger(__name__)
 class TransactionStep(enum.Enum):
     IDLE = 0
     TRANSACTION_START = 1
+
     # The following three are used for the Copy File Procedure
     SENDING_METADATA = 3
     SENDING_FILE_DATA = 4
+
     RETRANSMITTING = 5
     """Re-transmitting missing packets in acknowledged mode."""
+
     SENDING_EOF = 6
     WAITING_FOR_EOF_ACK = 7
     WAITING_FOR_FINISHED = 8
@@ -886,12 +889,9 @@ class SourceHandler:
         :return: True if a packet was prepared, False if PDU handling is done and the next steps
             in the Copy File procedure can be performed
         """
-        if self._params.fp.file_size < self._params.fp.segment_len:
-            read_len = self._params.fp.file_size
-        elif self._params.fp.progress + self._params.fp.segment_len > self._params.fp.file_size:
-            read_len = self._params.fp.file_size - self._params.fp.progress
-        else:
-            read_len = self._params.fp.segment_len
+        read_len = min(
+            self._params.fp.segment_len, self._params.fp.file_size - self._params.fp.progress
+        )
         self._prepare_file_data_pdu(self._params.fp.progress, read_len)
         self._params.fp.progress += read_len
 
@@ -930,7 +930,7 @@ class SourceHandler:
         next_seq_num = self.seq_num_provider.get_and_increment()
         if self.seq_num_provider.max_bit_width not in [8, 16, 32]:
             raise ValueError(
-                "Invalid bit width for sequence number provider, must be one of [8," " 16, 32]"
+                "Invalid bit width for sequence number provider, must be one of [8, 16, 32]"
             )
         self._params.pdu_conf.transaction_seq_num = ByteFieldGenerator.from_int(
             self.seq_num_provider.max_bit_width // 8, next_seq_num

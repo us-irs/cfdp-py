@@ -36,8 +36,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_regular_transfer_init(0)
         fsm_res = self._generic_insert_eof_pdu(0, NULL_CHECKSUM_U32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        fsm_res = self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, b"")
         self._generic_insert_finished_pdu_ack(finished_pdu)
@@ -53,8 +52,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._insert_file_segment(file_content, 0)
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        fsm_res = self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_content)
         self._generic_insert_finished_pdu_ack(finished_pdu)
@@ -75,9 +73,11 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         fsm_res = self.dest_handler.state_machine(eof_pdu)
         # Should contain an ACK PDU now.
         self._generic_verify_eof_ack_packet(
-            fsm_res, condition_code_of_acked_pdu=ConditionCode.CANCEL_REQUEST_RECEIVED
+            fsm_res,
+            TransactionStep.WAITING_FOR_FINISHED_ACK,
+            condition_code_of_acked_pdu=ConditionCode.CANCEL_REQUEST_RECEIVED,
         )
-        fsm_res = self.dest_handler.state_machine()
+        # fsm_res = self.dest_handler.state_machine()
         finished_pdu = self._generic_finished_pdu_check_acked(
             fsm_res,
             expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
@@ -105,8 +105,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._insert_file_segment(file_content[0:5], 0)
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
@@ -140,8 +139,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        fsm_res = self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_content)
         self._generic_insert_finished_pdu_ack(finished_pdu)
@@ -164,8 +162,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        fsm_res = self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_content)
         self._generic_insert_finished_pdu_ack(finished_pdu)
@@ -192,8 +189,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        fsm_res = self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_content)
         self._generic_insert_finished_pdu_ack(finished_pdu)
@@ -214,9 +210,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-
-        self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
@@ -250,9 +244,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
 
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-
-        self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
@@ -318,8 +310,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # All lost segments were delivered, regular transfer finish.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        fsm_res = self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, file_content)
         self._generic_insert_finished_pdu_ack(finished_pdu)
@@ -327,15 +318,16 @@ class TestDestHandlerAcked(TestDestHandlerBase):
     def test_metadata_eof_only_missing_metadata(self):
         fsm_res = self._generic_insert_eof_pdu(0, NULL_CHECKSUM_U32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_METADATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_METADATA)
         self._generic_verify_missing_segment_requested(0, 0, [(0, 0)])
+        # The EOF has a file size of 0, so the file size parameter is already set.
         fsm_res = self._generic_transfer_init(
             0,
             expected_init_packets=0,
             expected_init_state=CfdpState.BUSY,
             expected_init_step=TransactionStep.WAITING_FOR_METADATA,
+            expected_file_size=0,
         )
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK)
         finished_pdu = self._generic_no_error_finished_pdu_check_acked(fsm_res)
@@ -360,8 +352,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         # This should trigger deferred EOF handling.
         fsm_res = self._generic_insert_eof_pdu(len(file_content), crc32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_MISSING_DATA)
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_MISSING_DATA)
         self.assertTrue(self.dest_handler.deferred_lost_segment_procedure_active)
         self.assertEqual(self.dest_handler.nak_activity_counter, 0)
@@ -424,8 +415,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_regular_transfer_init(0)
         fsm_res = self._generic_insert_eof_pdu(0, NULL_CHECKSUM_U32)
         self._generic_eof_recv_indication_check(fsm_res)
-        self._generic_verify_eof_ack_packet(fsm_res)
-        fsm_res = self.dest_handler.state_machine()
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         self._generic_no_error_finished_pdu_check_acked(fsm_res)
         self._generic_verify_transfer_completion(fsm_res, b"")
         time.sleep(self.timeout_positive_ack_procedure_seconds * 1.1)
@@ -495,6 +485,7 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.WAITING_FOR_FINISHED_ACK)
         next_pdu = self.dest_handler.get_next_packet()
         self.assertIsNotNone(next_pdu)
+        assert next_pdu is not None
         self.assertEqual(next_pdu.pdu_type, PduType.FILE_DIRECTIVE)
         self.assertEqual(next_pdu.pdu_directive_type, DirectiveType.FINISHED_PDU)
         finished_pdu = next_pdu.to_finished_pdu()
@@ -520,13 +511,14 @@ class TestDestHandlerAcked(TestDestHandlerBase):
     def _generic_verify_eof_ack_packet(
         self,
         fsm_res: FsmResult,
+        step_after_eof_ack: TransactionStep,
         condition_code_of_acked_pdu: ConditionCode = ConditionCode.NO_ERROR,
     ):
         self._state_checker(
             fsm_res,
-            1,
+            2,
             CfdpState.BUSY,
-            TransactionStep.SENDING_EOF_ACK_PDU,
+            step_after_eof_ack,
         )
         next_pdu = self.dest_handler.get_next_packet()
         assert next_pdu is not None

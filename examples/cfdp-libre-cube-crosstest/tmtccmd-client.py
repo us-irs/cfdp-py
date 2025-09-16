@@ -14,7 +14,7 @@ from datetime import timedelta
 from logging import basicConfig
 from pathlib import Path
 from queue import Empty
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from common import REMOTE_CFG_FOR_DEST_ENTITY, UDP_SERVER_PORT, UDP_TM_SERVER_PORT
 from common import REMOTE_ENTITY_ID as REMOTE_ENTITY_ID_RAW
@@ -24,7 +24,6 @@ from spacepackets.cfdp import (
     TransactionId,
     TransmissionMode,
 )
-from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
 from spacepackets.cfdp.pdu.helper import PduFactory
 from spacepackets.countdown import Countdown
 from spacepackets.seqcount import SeqCountProvider
@@ -49,6 +48,9 @@ from cfdppy.user import (
     TransactionFinishedParams,
     TransactionParams,
 )
+
+if TYPE_CHECKING:
+    from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
 
 SOURCE_ENTITY_ID = ByteFieldU16(SOURCE_ENTITY_ID_RAW)
 DEST_ENTITY_ID = ByteFieldU16(REMOTE_ENTITY_ID_RAW)
@@ -292,7 +294,7 @@ def source_entity_handler(
             ready = select.select([tm_client], [], [], 0)
             if ready[0]:
                 data, _ = tm_client.recvfrom(4096)
-                packet = cast(AbstractFileDirectiveBase, PduFactory.from_raw(data))
+                packet = cast("AbstractFileDirectiveBase", PduFactory.from_raw(data))
                 packet_received = True
         except Empty:
             pass
