@@ -7,7 +7,7 @@ from spacepackets.cfdp.pdu import AbstractFileDirectiveBase
 from spacepackets.util import UnsignedByteField
 
 
-class NoRemoteEntityCfgFound(Exception):
+class NoRemoteEntityConfigFound(Exception):
     def __init__(self, entity_id: UnsignedByteField):
         super().__init__()
         self.remote_entity_id = entity_id
@@ -122,8 +122,10 @@ class InvalidPduForDestHandler(Exception):
 class PduIgnoredForDestReason(enum.IntEnum):
     FIRST_PACKET_NOT_METADATA_PDU = 0
     """First packet received was not a metadata PDU for the unacknowledged mode."""
+
     INVALID_MODE_FOR_ACKED_MODE_PACKET = 1
     """The received PDU can only be handled in acknowledged mode."""
+
     FIRST_PACKET_IN_ACKED_MODE_NOT_METADATA_NOT_EOF_NOT_FD = 2
     """For the acknowledged mode, the first packet that was received with
     no metadata received previously was not a File Data PDU or EOF PDU."""

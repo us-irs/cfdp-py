@@ -50,7 +50,7 @@ from cfdppy.exceptions import (
     InvalidPduForSourceHandler,
     InvalidSourceId,
     InvalidTransactionSeqNum,
-    NoRemoteEntityCfgFound,
+    NoRemoteEntityConfigFound,
     PduIgnoredForSource,
     PduIgnoredForSourceReason,
     SourceFileDoesNotExist,
@@ -344,7 +344,7 @@ class SourceHandler:
             assert isinstance(self._put_req.dest_file, Path)
         self._params.remote_cfg = self.remote_cfg_table.get_cfg(request.destination_id)
         if self._params.remote_cfg is None:
-            raise NoRemoteEntityCfgFound(entity_id=request.destination_id)
+            raise NoRemoteEntityConfigFound(entity_id=request.destination_id)
         self._params.dest_id = request.destination_id
         self.states._num_packets_ready = 0
         self.states.state = CfdpState.BUSY
@@ -390,7 +390,7 @@ class SourceHandler:
         # TODO: This can happen if a packet is received for which no transaction was started..
         #       A better exception might be worth a thought..
         if self._params.remote_cfg is None:
-            raise NoRemoteEntityCfgFound(entity_id=packet.dest_entity_id)
+            raise NoRemoteEntityConfigFound(entity_id=packet.dest_entity_id)
         if packet.dest_entity_id.value != self._params.remote_cfg.entity_id.value:
             raise InvalidDestinationId(self._params.remote_cfg.entity_id, packet.dest_entity_id)
 

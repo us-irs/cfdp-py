@@ -26,7 +26,7 @@ from cfdppy import (
     RemoteEntityCfgTable,
 )
 from cfdppy.defs import CfdpState
-from cfdppy.exceptions import NoRemoteEntityCfgFound
+from cfdppy.exceptions import NoRemoteEntityConfigFound
 from cfdppy.handler.dest import (
     DestHandler,
     PduIgnoredForDest,
@@ -122,7 +122,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
         )
         file_transfer_init = MetadataPdu(params=metadata_params, pdu_conf=self.src_pdu_conf)
         self._state_checker(None, False, CfdpState.IDLE, TransactionStep.IDLE)
-        with self.assertRaises(NoRemoteEntityCfgFound):
+        with self.assertRaises(NoRemoteEntityConfigFound):
             self.dest_handler.state_machine(file_transfer_init)
 
     def test_check_timer_mechanism(self):
