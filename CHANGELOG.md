@@ -87,3 +87,6 @@ should fix references to the `spacepackets` documentation.
 
 Initial release of the `cfdp-py` library which was split off the
 [tmtccmd library](https://github.com/robamu-org/tmtccmd).
+
+[unreleased]: https://github.com/us-irs/cfdp-py/compare/v0.5.0...HEAD
+[v0.5.1]: https://github.com/us-irs/cfdp-py/compare/v0.5.0...v0.5.1
