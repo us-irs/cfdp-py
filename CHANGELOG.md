@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+- Bump allowed `spacepackets` to >=0.30, <=0.31
+- Transition CRC library from `crcmod` to `fastcrc`
+
 # [v0.5.1] 2025-02-10
 
 - Bump allowed `spacepackets` to v0.28.0
