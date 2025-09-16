@@ -150,19 +150,20 @@ class TestCfdpDestHandler(TestDestHandlerBase):
             TransactionStep.IDLE,
         )
 
-    def test_cancelled_transfer_via_eof_pdu(self):
+    def test_cancelled_transfer_via_eof_pdu_complete(self):
         data = b"Hello World\n"
         with open(self.src_file_path, "wb") as of:
             of.write(data)
         file_size = self.src_file_path.stat().st_size
+        crc32 = struct.pack("!I", fastcrc.crc32.iso_hdlc(data))
         self._generic_regular_transfer_init(
             file_size=file_size,
         )
         self._insert_file_segment(segment=data, offset=0)
         # Cancel the transfer by sending an EOF PDU with the appropriate parameters.
         eof_pdu = EofPdu(
-            file_size=0,
-            file_checksum=NULL_CHECKSUM_U32,
+            file_size=len(data),
+            file_checksum=crc32,
             pdu_conf=self.src_pdu_conf,
             condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
         )
@@ -176,6 +177,45 @@ class TestCfdpDestHandler(TestDestHandlerBase):
                 expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
                 expected_fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
             )
+        # The data is still complete, checksum was verified successfully.
+        self._generic_verify_transfer_completion(
+            fsm_res,
+            expected_file_data=None,
+            expected_finished_params=FinishedParams(
+                condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+                delivery_code=DeliveryCode.DATA_COMPLETE,
+                file_status=FileStatus.FILE_RETAINED,
+                fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
+            ),
+        )
+
+    def test_cancelled_transfer_via_eof_pdu_incomplete(self):
+        data = b"Hello World\n"
+        with open(self.src_file_path, "wb") as of:
+            of.write(data)
+        file_size = self.src_file_path.stat().st_size
+        crc32 = struct.pack("!I", fastcrc.crc32.iso_hdlc(data))
+        self._generic_regular_transfer_init(
+            file_size=file_size,
+        )
+        # Cancel the transfer by sending an EOF PDU with the appropriate parameters.
+        eof_pdu = EofPdu(
+            file_size=len(data),
+            file_checksum=crc32,
+            pdu_conf=self.src_pdu_conf,
+            condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+        )
+        fsm_res = self.dest_handler.state_machine(eof_pdu)
+        self._generic_eof_recv_indication_check(fsm_res)
+        if self.closure_requested:
+            self._generic_finished_pdu_check(
+                fsm_res,
+                expected_state=CfdpState.IDLE,
+                expected_step=TransactionStep.IDLE,
+                expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+                expected_fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
+            )
+        # Data segment missing, checksum fails, data incomplete.
         self._generic_verify_transfer_completion(
             fsm_res,
             expected_file_data=None,

@@ -57,12 +57,9 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         self._generic_verify_transfer_completion(fsm_res, file_content)
         self._generic_insert_finished_pdu_ack(finished_pdu)
 
-    def test_cancelled_file_transfer(self):
-        file_content = b"Hello World!"
-        with open(self.src_file_path, "wb") as of:
-            of.write(file_content)
+    def test_cancelled_file_transfer_empty(self):
         # Basic acknowledged empty file transfer.
-        self._generic_regular_transfer_init(len(file_content))
+        self._generic_regular_transfer_init(0)
         # Cancel the transfer by sending an EOF PDU with the appropriate parameters.
         eof_pdu = EofPdu(
             file_size=0,
@@ -77,7 +74,46 @@ class TestDestHandlerAcked(TestDestHandlerBase):
             TransactionStep.WAITING_FOR_FINISHED_ACK,
             condition_code_of_acked_pdu=ConditionCode.CANCEL_REQUEST_RECEIVED,
         )
-        # fsm_res = self.dest_handler.state_machine()
+        finished_pdu = self._generic_finished_pdu_check_acked(
+            fsm_res,
+            expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+            expected_fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
+            empty_file=True,
+        )
+        # Complete, because this is just an empty file.
+        self._generic_verify_transfer_completion(
+            fsm_res,
+            expected_file_data=None,
+            expected_finished_params=FinishedParams(
+                condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+                delivery_code=DeliveryCode.DATA_COMPLETE,
+                file_status=FileStatus.FILE_RETAINED,
+                fault_location=EntityIdTlv(self.src_entity_id.as_bytes),
+            ),
+        )
+        self._generic_insert_finished_pdu_ack(finished_pdu)
+
+    def test_cancelled_file_transfer(self):
+        file_content = b"Hello World!"
+        with open(self.src_file_path, "wb") as of:
+            of.write(file_content)
+        crc32 = fastcrc.crc32.iso_hdlc(file_content)
+        # Basic acknowledged empty file transfer.
+        self._generic_regular_transfer_init(len(file_content))
+        # Cancel the transfer by sending an EOF PDU with the appropriate parameters.
+        eof_pdu = EofPdu(
+            file_size=len(file_content),
+            file_checksum=crc32,
+            pdu_conf=self.src_pdu_conf,
+            condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
+        )
+        fsm_res = self.dest_handler.state_machine(eof_pdu)
+        # Should contain an ACK PDU now.
+        self._generic_verify_eof_ack_packet(
+            fsm_res,
+            TransactionStep.WAITING_FOR_FINISHED_ACK,
+            condition_code_of_acked_pdu=ConditionCode.CANCEL_REQUEST_RECEIVED,
+        )
         finished_pdu = self._generic_finished_pdu_check_acked(
             fsm_res,
             expected_condition_code=ConditionCode.CANCEL_REQUEST_RECEIVED,
