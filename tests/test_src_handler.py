@@ -25,10 +25,10 @@ from spacepackets.util import ByteFieldU16, ByteFieldU32
 
 from cfdppy import (
     CfdpState,
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
+    IndicationConfig,
+    LocalEntityConfig,
+    RemoteEntityConfig,
+    RemoteEntityConfigTable,
 )
 from cfdppy.exceptions import UnretrievedPdusToBeSent
 from cfdppy.handler import FsmResult, SourceHandler
@@ -60,14 +60,14 @@ class TestCfdpSourceHandler(TestCase):
     def common_setup(self, closure_requested: bool, default_transmission_mode: TransmissionMode):
         self.setUpPyfakefs()
         self.closure_requested = closure_requested
-        self.indication_cfg = IndicationCfg(True, True, True, True, True, True)
+        self.indication_cfg = IndicationConfig(True, True, True, True, True, True)
         self.fault_handler = FaultHandler()
         self.fault_handler.notice_of_cancellation_cb = MagicMock()
         self.fault_handler.notice_of_suspension_cb = MagicMock()
         self.fault_handler.abandoned_cb = MagicMock()
         self.fault_handler.ignore_cb = MagicMock()
         print(self.fault_handler.notice_of_cancellation_cb)
-        self.local_cfg = LocalEntityCfg(ByteFieldU16(1), self.indication_cfg, self.fault_handler)
+        self.local_cfg = LocalEntityConfig(ByteFieldU16(1), self.indication_cfg, self.fault_handler)
         self.cfdp_user = CfdpUser()
         self.cfdp_user.eof_sent_indication = MagicMock()
         self.cfdp_user.transaction_indication = MagicMock()
@@ -81,7 +81,7 @@ class TestCfdpSourceHandler(TestCase):
         self.file_segment_len = 64
         self.max_packet_len = 256
         self.positive_ack_intvl_seconds = 0.02
-        self.default_remote_cfg = RemoteEntityCfg(
+        self.default_remote_cfg = RemoteEntityConfig(
             entity_id=self.dest_id,
             max_packet_len=self.max_packet_len,
             max_file_segment_len=self.file_segment_len,
@@ -95,7 +95,7 @@ class TestCfdpSourceHandler(TestCase):
         )
         self.alternative_remote_cfg = copy.copy(self.default_remote_cfg)
         self.alternative_remote_cfg.entity_id = self.alternative_dest_id
-        self.remote_cfg_table = RemoteEntityCfgTable()
+        self.remote_cfg_table = RemoteEntityConfigTable()
         self.remote_cfg_table.add_config(self.default_remote_cfg)
         self.remote_cfg_table.add_config(self.alternative_remote_cfg)
         # Create an empty file and send it via CFDP

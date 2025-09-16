@@ -56,9 +56,9 @@ from cfdppy.handler.defs import (
 from cfdppy.mib import (
     CheckTimerProvider,
     EntityType,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
+    LocalEntityConfig,
+    RemoteEntityConfig,
+    RemoteEntityConfigTable,
 )
 from cfdppy.user import (
     CfdpUserBase,
@@ -238,7 +238,7 @@ class _DestFieldWrapper:
 
     def __init__(self):
         self.transaction_id: TransactionId | None = None
-        self.remote_cfg: RemoteEntityCfg | None = None
+        self.remote_cfg: RemoteEntityConfig | None = None
         self.check_timer: Countdown | None = None
         self.current_check_count: int = 0
         self.closure_requested: bool = False
@@ -319,9 +319,9 @@ class DestHandler:
 
     def __init__(
         self,
-        cfg: LocalEntityCfg,
+        cfg: LocalEntityConfig,
         user: CfdpUserBase,
-        remote_cfg_table: RemoteEntityCfgTable,
+        remote_cfg_table: RemoteEntityConfigTable,
         check_timer_provider: CheckTimerProvider,
     ) -> None:
         self.cfg = cfg

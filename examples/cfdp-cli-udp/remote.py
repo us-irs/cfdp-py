@@ -25,8 +25,8 @@ from spacepackets.seqcount import SeqCountProvider
 from cfdppy.handler.dest import DestHandler
 from cfdppy.handler.source import SourceHandler
 from cfdppy.mib import (
-    LocalEntityCfg,
-    RemoteEntityCfgTable,
+    LocalEntityConfig,
+    RemoteEntityConfigTable,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,11 +62,11 @@ def main() -> None:
     # 16 bit sequence count for transactions.
     src_seq_count_provider = SeqCountProvider(16)
     src_user = CfdpUser(BASE_STR_SRC, PUT_REQ_QUEUE)
-    remote_cfg_table = RemoteEntityCfgTable()
+    remote_cfg_table = RemoteEntityConfigTable()
     remote_cfg_table.add_config(REMOTE_CFG_OF_LOCAL_ENTITY)
     check_timer_provider = CustomCheckTimerProvider()
     source_handler = SourceHandler(
-        cfg=LocalEntityCfg(REMOTE_ENTITY_ID, INDICATION_CFG, src_fault_handler),
+        cfg=LocalEntityConfig(REMOTE_ENTITY_ID, INDICATION_CFG, src_fault_handler),
         user=src_user,
         remote_cfg_table=remote_cfg_table,
         check_timer_provider=check_timer_provider,
@@ -86,7 +86,7 @@ def main() -> None:
     dest_fault_handler = CfdpFaultHandler(BASE_STR_DEST)
     dest_user = CfdpUser(BASE_STR_DEST, PUT_REQ_QUEUE)
     dest_handler = DestHandler(
-        cfg=LocalEntityCfg(REMOTE_ENTITY_ID, INDICATION_CFG, dest_fault_handler),
+        cfg=LocalEntityConfig(REMOTE_ENTITY_ID, INDICATION_CFG, dest_fault_handler),
         user=dest_user,
         remote_cfg_table=remote_cfg_table,
         check_timer_provider=check_timer_provider,

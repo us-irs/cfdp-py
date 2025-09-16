@@ -1,9 +1,9 @@
 from spacepackets.seqcount import ProvidesSeqCount
 
 from cfdppy.mib import (
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
+    LocalEntityConfig,
+    RemoteEntityConfig,
+    RemoteEntityConfigTable,
 )
 
 from .common import PacketDestination, get_packet_destination
@@ -17,11 +17,11 @@ __all__ = [
     "DestStateWrapper",
     "DestTransactionStep",
     "FsmResult",
-    "LocalEntityCfg",
+    "LocalEntityConfig",
     "PacketDestination",
     "ProvidesSeqCount",
-    "RemoteEntityCfg",
-    "RemoteEntityCfgTable",
+    "RemoteEntityConfig",
+    "RemoteEntityConfigTable",
     "SourceHandler",
     "SourceStateWrapper",
     "SourceTransactionStep",

@@ -8,10 +8,10 @@ from .defs import CfdpIndication, CfdpState
 from .filestore import HostFilestore, VirtualFilestore
 from .handler.common import PacketDestination, get_packet_destination
 from .mib import (
-    IndicationCfg,
-    LocalEntityCfg,
-    RemoteEntityCfg,
-    RemoteEntityCfgTable,
+    IndicationConfig,
+    LocalEntityConfig,
+    RemoteEntityConfig,
+    RemoteEntityConfigTable,
 )
 from .request import PutRequest
 from .restricted_filestore import RestrictedFilestore
@@ -22,12 +22,12 @@ __all__ = [
     "CfdpState",
     "CfdpUserBase",
     "HostFilestore",
-    "IndicationCfg",
-    "LocalEntityCfg",
+    "IndicationConfig",
+    "LocalEntityConfig",
     "PacketDestination",
     "PutRequest",
-    "RemoteEntityCfg",
-    "RemoteEntityCfgTable",
+    "RemoteEntityConfig",
+    "RemoteEntityConfigTable",
     "RestrictedFilestore",
     "TransactionId",
     "VirtualFilestore",

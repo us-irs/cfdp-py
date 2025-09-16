@@ -150,7 +150,7 @@ class CheckTimerProvider(ABC):
 
 
 @dataclass
-class IndicationCfg:
+class IndicationConfig:
     eof_sent_indication_required: bool = True
     eof_recv_indication_required: bool = True
     file_segment_recvd_indication_required: bool = True
@@ -160,17 +160,17 @@ class IndicationCfg:
 
 
 @dataclass
-class LocalEntityCfg:
+class LocalEntityConfig:
     """This models the remote entity configuration information as specified in chapter 8.2
     of the CFDP standard."""
 
     local_entity_id: UnsignedByteField
-    indication_cfg: IndicationCfg
+    indication_cfg: IndicationConfig
     default_fault_handlers: DefaultFaultHandlerBase
 
 
 @dataclass
-class RemoteEntityCfg:
+class RemoteEntityConfig:
     """This models the remote entity configuration information as specified in chapter 8.3
     of the CFDP standard.
 
@@ -264,26 +264,26 @@ class RemoteEntityCfg:
     cfdp_version: int = CFDP_VERSION_2
 
 
-class RemoteEntityCfgTable:
+class RemoteEntityConfigTable:
     """Thin abstraction for a dictionary containing remote configurations with the remote entity ID
     being used as a key."""
 
-    def __init__(self, init_cfgs: Sequence[RemoteEntityCfg] | None = None):
+    def __init__(self, init_cfgs: Sequence[RemoteEntityConfig] | None = None):
         self._remote_entity_dict = {}
         if init_cfgs is not None:
             self.add_configs(init_cfgs)
 
-    def add_config(self, cfg: RemoteEntityCfg) -> bool:
+    def add_config(self, cfg: RemoteEntityConfig) -> bool:
         if cfg.entity_id in self._remote_entity_dict:
             return False
         self._remote_entity_dict.update({cfg.entity_id.value: cfg})
         return True
 
-    def add_configs(self, cfgs: Sequence[RemoteEntityCfg]) -> None:
+    def add_configs(self, cfgs: Sequence[RemoteEntityConfig]) -> None:
         for cfg in cfgs:
             if cfg.entity_id in self._remote_entity_dict:
                 continue
             self._remote_entity_dict.update({cfg.entity_id.value: cfg})
 
-    def get_cfg(self, remote_entity_id: UnsignedByteField) -> RemoteEntityCfg | None:
+    def get_cfg(self, remote_entity_id: UnsignedByteField) -> RemoteEntityConfig | None:
         return self._remote_entity_dict.get(remote_entity_id.value)

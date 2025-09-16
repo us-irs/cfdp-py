@@ -23,7 +23,7 @@ from spacepackets.cfdp.pdu import (
 from spacepackets.cfdp.pdu.file_data import FileDataParams
 
 from cfdppy import (
-    RemoteEntityCfgTable,
+    RemoteEntityConfigTable,
 )
 from cfdppy.defs import CfdpState
 from cfdppy.exceptions import NoRemoteEntityConfigFound
@@ -106,7 +106,7 @@ class TestCfdpDestHandler(TestDestHandlerBase):
 
     def test_remote_cfg_does_not_exist(self):
         # Re-create empty table
-        self.remote_cfg_table = RemoteEntityCfgTable()
+        self.remote_cfg_table = RemoteEntityConfigTable()
         self.dest_handler = DestHandler(
             self.local_cfg,
             self.cfdp_user,
