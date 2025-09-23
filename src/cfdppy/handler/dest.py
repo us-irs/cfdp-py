@@ -846,8 +846,6 @@ class DestHandler:
             self.user.file_segment_recv_indication(file_segment_indic_params)
         try:
             next_expected_progress = offset + len(data)
-            if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
-                self._lost_segment_handling(offset, len(data))
             self.user.vfs.write_data(self._params.fp.file_name, data, offset)
             self._params.finished_params.file_status = FileStatus.FILE_RETAINED
 
@@ -865,6 +863,8 @@ class DestHandler:
                 return
             # Ensure that the progress value is always incremented
             self._params.fp.progress = max(next_expected_progress, self._params.fp.progress)
+            if self.transmission_mode == TransmissionMode.ACKNOWLEDGED:
+                self._lost_segment_handling(offset, len(data))
         except FileNotFoundError:
             if self._params.finished_params.file_status != FileStatus.FILE_RETAINED:
                 self._params.finished_params.file_status = FileStatus.DISCARDED_FILESTORE_REJECTION
