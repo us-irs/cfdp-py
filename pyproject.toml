@@ -12,6 +12,7 @@ readme = "README.md"
 version = "0.6.0"
 requires-python = ">=3.9"
 license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
   { name = "Robin Mueller", email = "robin.mueller.m@pm.me" }
 ]
