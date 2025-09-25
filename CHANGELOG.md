@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Corrections for EOF (Cancel) Handling: Perform proper checks on whether the file is actually
   completed using the supplied file size and checksum.
+- Some fixes for the handling of multiple NAK PDUs in one NAK sequence
 
 # [v0.5.1] 2025-02-10
 
