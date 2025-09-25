@@ -1,9 +1,12 @@
 [build-system]
-requires = ["uv_build >= 0.8.17, <0.9.0"]
-build-backend = "uv_build"
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
 
 [tool.uv.build-backend]
 module-name = "cfdppy"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cfdppy"]
 
 [project]
 name = "cfdp-py"
