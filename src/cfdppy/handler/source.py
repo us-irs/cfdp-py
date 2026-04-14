@@ -38,6 +38,7 @@ from spacepackets.cfdp.pdu.file_data import (
     get_max_file_seg_len_for_max_packet_len_and_pdu_cfg,
 )
 from spacepackets.cfdp.pdu.finished import FinishedParams
+from spacepackets.cfdp.pdu.prompt import PromptPdu, ResponseRequired
 from spacepackets.cfdp.tlv import ProxyMessageType
 from spacepackets.countdown import Countdown
 from spacepackets.util import ByteFieldGenerator, UnsignedByteField
@@ -483,6 +484,15 @@ class SourceHandler:
     @property
     def transaction_id(self) -> TransactionId | None:
         return self._params.transaction_id
+
+    def create_prompt_pdu(self, response_required: ResponseRequired) -> None | PromptPdu:
+        """Generate a prompt PDU which can be used to query the progress of the destination handler.
+
+        Returns None if no transfer is active.
+        """
+        if self.state == CfdpState.IDLE:
+            return None
+        return PromptPdu(self.pdu_conf, response_required)
 
     def _reset_internal(self, clear_packet_queue: bool) -> None:
         """This function is public to allow completely resetting the handler, but it is explicitly
