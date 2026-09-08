@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Bump allowed `spacepackets` to >=0.30, <0.33
 - Added Python 3.14 to CI
 
+## Removed
+
+- Dropped Python 3.9 support. It reached end-of-life on 2025-10-31. Minimum is now Python 3.10.
+
 ## Fixed
 
 - Metadata-only transactions (e.g. a Proxy Put Request per CCSDS 727.0-B-5 6.1) now correctly
