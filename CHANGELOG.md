@@ -8,12 +8,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+# [v0.7.0] 2026-09-08
+
+- Bump allowed `spacepackets` to >=0.30, <0.33
+- Added Python 3.14 to CI
+
 ## Fixed
 
 - Metadata-only transactions (e.g. a Proxy Put Request per CCSDS 727.0-B-5 6.1) now correctly
   send and expect an EOF (No error) PDU, as required by 4.6.1.1.9 case (C). The source handler no
   longer tries to checksum a source file that does not exist for this case, and the destination
   handler no longer jumps straight to transfer completion without waiting for the EOF PDU.
+- Source handler's `_prepare_file_params` did not set `file_size` for a metadata-only put
+  request. This was masked for a freshly constructed handler, but a handler reused for a second,
+  metadata-only transaction after a first one completed raised an `AssertionError`.
 
 # [v0.6.0] 2025-09-25
 
@@ -111,6 +119,7 @@ should fix references to the `spacepackets` documentation.
 Initial release of the `cfdp-py` library which was split off the
 [tmtccmd library](https://github.com/robamu-org/tmtccmd).
 
-[unreleased]: https://github.com/us-irs/cfdp-py/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/us-irs/cfdp-py/compare/v0.7.0...HEAD
+[v0.7.0]: https://github.com/us-irs/cfdp-py/compare/v0.6.0...v0.7.0
 [v0.6.0]: https://github.com/us-irs/cfdp-py/compare/v0.5.1...v0.6.0
 [v0.5.1]: https://github.com/us-irs/cfdp-py/compare/v0.5.0...v0.5.1
