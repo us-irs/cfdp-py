@@ -150,8 +150,10 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
         self.cfdp_user.transaction_indication.assert_called_once_with(
             TransactionParams(expected_id)
         )
-        # Now the state machine should be finished.
+        # Per CCSDS 727.0-B-5 4.6.1.1.9, an EOF PDU is still issued for a metadata-only
+        # transaction, so the state machine now queues that EOF PDU before completing.
         fsm_res = self.source_handler.state_machine()
+        self._test_eof_file_pdu(fsm_res, 0, bytes(4))
         finished_params = TransactionFinishedParams(
             transaction_id=expected_id,
             finished_params=FinishedParams(
@@ -161,7 +163,6 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
             ),
         )
         self.cfdp_user.transaction_finished_indication.assert_called_once_with(finished_params)
-        self._state_checker(fsm_res, 0, CfdpState.IDLE, TransactionStep.IDLE)
 
     def test_put_req_by_proxy_op(self):
         file_content = b"Hello World\n"
@@ -222,8 +223,42 @@ class TestCfdpSourceHandlerNackedNoClosure(TestCfdpSourceHandler):
             originating_transaction_id=None,
             crc_type=ChecksumType.NULL_CHECKSUM,
         )
-        self.source_handler.state_machine()
+        # Per CCSDS 727.0-B-5 4.6.1.1.9, an EOF PDU is still issued for a metadata-only
+        # transaction, so the state machine now queues that EOF PDU before completing.
+        fsm_res = self.source_handler.state_machine()
+        self._test_eof_file_pdu(fsm_res, 0, bytes(4))
+        self.cfdp_user.transaction_finished_indication.assert_called_once()
+
+    def test_metadata_only_request_after_completed_transfer_on_same_handler(self):
+        """Regression test for a bug where `_prepare_file_params` never set `file_size` for a
+        metadata-only put request. This was masked as long as the handler was freshly
+        constructed (`_SourceFileParams.empty()` sets `file_size=0`), but a handler reused for
+        a second, metadata-only transaction after a first one completed crashed with an
+        AssertionError, because `.reset()` sets `file_size=None` instead of `0`."""
+        file_content = b"Hello World\n"
+        transaction_id, _, _, _ = self._common_small_file_test(None, False, file_content)
+        self._verify_eof_indication(transaction_id)
         self._test_transaction_completion()
+
+        proxy_op_params = ProxyPutRequestParams(
+            self.local_cfg.local_entity_id,
+            CfdpLv.from_str(f"{tempfile.gettempdir()}/source.txt"),
+            CfdpLv.from_str(f"{tempfile.gettempdir()}/dest.txt"),
+        )
+        put_req = PutRequest(
+            destination_id=self.dest_id,
+            source_file=None,
+            dest_file=None,
+            trans_mode=None,
+            closure_requested=None,
+            msgs_to_user=[ProxyPutRequest(proxy_op_params).to_generic_msg_to_user_tlv()],
+        )
+        self.source_handler.put_request(put_req)
+        fsm_res = self.source_handler.state_machine()
+        self._state_checker(fsm_res, 1, CfdpState.BUSY, TransactionStep.SENDING_METADATA)
+        self.source_handler.get_next_packet()
+        fsm_res = self.source_handler.state_machine()
+        self._test_eof_file_pdu(fsm_res, 0, bytes(4))
 
     def _test_eof_file_pdu(self, fsm_res: FsmResult, file_size: int, crc32: bytes):
         self._state_checker(fsm_res, 1, CfdpState.IDLE, TransactionStep.IDLE)

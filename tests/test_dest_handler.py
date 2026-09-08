@@ -171,7 +171,7 @@ class TestDestHandlerBase(TestCase):
         expected_init_packets: int,
         expected_init_state: CfdpState,
         expected_init_step: TransactionStep,
-        expected_file_size: None | int = None,
+        expected_file_size: int | None = None,
         expected_originating_id: TransactionId | None = None,
     ) -> FsmResult:
         checksum_type = ChecksumType.NULL_CHECKSUM

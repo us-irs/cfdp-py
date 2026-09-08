@@ -19,7 +19,7 @@ from spacepackets.cfdp import (
     TransactionId,
     TransmissionMode,
 )
-from spacepackets.cfdp.defs import ChecksumType
+from spacepackets.cfdp.defs import NULL_CHECKSUM_U32, ChecksumType
 from spacepackets.cfdp.pdu import (
     AbstractFileDirectiveBase,
     AckPdu,
@@ -485,7 +485,7 @@ class SourceHandler:
     def transaction_id(self) -> TransactionId | None:
         return self._params.transaction_id
 
-    def create_prompt_pdu(self, response_required: ResponseRequired) -> None | PromptPdu:
+    def create_prompt_pdu(self, response_required: ResponseRequired) -> PromptPdu | None:
         """Generate a prompt PDU which can be used to query the progress of the destination handler.
 
         Returns None if no transfer is active.
@@ -586,16 +586,16 @@ class SourceHandler:
         assert self._put_req is not None
         if self._put_req.metadata_only:
             self._params.fp.metadata_only = True
+            self._params.fp.file_size = 0
         else:
             assert self._put_req.source_file is not None
             if not self.user.vfs.file_exists(self._put_req.source_file):
                 # TODO: Handle this exception in the handler, reset CFDP state machine
                 raise SourceFileDoesNotExist(self._put_req.source_file)
             file_size = self.user.vfs.file_size(self._put_req.source_file)
+            self._params.fp.file_size = file_size
             if file_size == 0:
                 self._params.fp.empty_file = True
-            else:
-                self._params.fp.file_size = file_size
 
     def _prepare_pdu_conf(self, file_size: int) -> None:
         # Please note that the transmission mode and closure requested field were set in
@@ -699,16 +699,14 @@ class SourceHandler:
             self._prepare_progressing_file_data_pdu()
             # Not finished yet. We exit here to allow the user to do flow control.
             return True
-        if self._params.fp.empty_file:
-            # Special case: Empty file, EOF still required.
+        # Per CCSDS 727.0-B-5 4.6.1.1.9, an EOF (No error) PDU is required once the Metadata
+        # PDU and all File Data PDUs have been issued, including case (C): no file is to be
+        # sent at all (a metadata-only transaction, e.g. a Proxy Put Request). A metadata-only
+        # transaction always has progress == file_size == 0, so it naturally falls into this
+        # branch already - there is deliberately no separate metadata-only case here.
+        if self._params.fp.empty_file or self._params.fp.progress >= self._params.fp.file_size:
             self._params.cond_code_eof = ConditionCode.NO_ERROR
             self.states.step = TransactionStep.SENDING_EOF
-        elif self._params.fp.metadata_only:
-            # Special case: Metadata Only, no EOF required.
-            if self._params.closure_requested:
-                self.states.step = TransactionStep.WAITING_FOR_FINISHED
-            else:
-                self.states.step = TransactionStep.NOTICE_OF_COMPLETION
         return False
 
     def __handle_retransmission(self, packet_holder: PduHolder) -> bool:
@@ -996,9 +994,14 @@ class SourceHandler:
 
     def _checksum_calculation(self, size_to_calculate: int) -> bytes:
         assert self._put_req is not None
-        assert self._put_req.source_file is not None
         assert self._params.remote_cfg is not None
 
+        # A metadata-only transaction (e.g. a Proxy Put Request) has no source file to read,
+        # so there is nothing to checksum: it always transfers zero bytes.
+        if self._params.fp.metadata_only:
+            return NULL_CHECKSUM_U32
+
+        assert self._put_req.source_file is not None
         return self.user.vfs.calculate_checksum(
             checksum_type=self._params.remote_cfg.crc_type,
             file_path=self._put_req.source_file,

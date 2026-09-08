@@ -474,7 +474,6 @@ class TestDestHandlerAcked(TestDestHandlerBase):
         options = self._generate_put_response_opts()
         metadata_pdu = self._generate_metadata_only_metadata(options)
         fsm_res = self.dest_handler.state_machine(metadata_pdu)
-        # Done immediately. The only thing we need to do is check the two user indications.
         self.cfdp_user.metadata_recv_indication.assert_called_once()
         self.cfdp_user.metadata_recv_indication.assert_called_with(
             MetadataRecvParams(
@@ -486,6 +485,13 @@ class TestDestHandlerAcked(TestDestHandlerBase):
                 options,
             )
         )
+        # Per CCSDS 727.0-B-5 4.6.1.1.9, an EOF PDU is still issued for a metadata-only
+        # transaction, so completion must wait for it rather than happening right after the
+        # Metadata PDU.
+        self.cfdp_user.transaction_finished_indication.assert_not_called()
+        self._state_checker(fsm_res, 0, CfdpState.BUSY, TransactionStep.RECEIVING_FILE_DATA)
+        fsm_res = self._generic_insert_eof_pdu(0, NULL_CHECKSUM_U32)
+        self._generic_verify_eof_ack_packet(fsm_res, TransactionStep.WAITING_FOR_FINISHED_ACK)
         self.cfdp_user.transaction_finished_indication.assert_called_once()
         self.cfdp_user.transaction_finished_indication.assert_called_with(
             TransactionFinishedParams(

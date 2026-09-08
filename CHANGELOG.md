@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 # [unreleased]
 
+## Fixed
+
+- Metadata-only transactions (e.g. a Proxy Put Request per CCSDS 727.0-B-5 6.1) now correctly
+  send and expect an EOF (No error) PDU, as required by 4.6.1.1.9 case (C). The source handler no
+  longer tries to checksum a source file that does not exist for this case, and the destination
+  handler no longer jumps straight to transfer completion without waiting for the EOF PDU.
+
 # [v0.6.0] 2025-09-25
 
 - Bump allowed `spacepackets` to >=0.30, <=0.31

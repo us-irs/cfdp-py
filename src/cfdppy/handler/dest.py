@@ -721,13 +721,14 @@ class DestHandler:
                 f"No remote configuration found for remote ID {metadata_pdu.dest_entity_id}"
             )
             raise NoRemoteEntityConfigFound(metadata_pdu.dest_entity_id)
+        # Per CCSDS 727.0-B-5 4.6.1.1.9, an EOF PDU is still issued for a metadata-only
+        # transaction (e.g. a Proxy Put Request), so the destination must keep waiting for it
+        # here instead of jumping straight to transfer completion.
+        self.states.step = TransactionStep.RECEIVING_FILE_DATA
         if not self._params.fp.metadata_only:
-            self.states.step = TransactionStep.RECEIVING_FILE_DATA
             assert metadata_pdu.source_file_name is not None
             self._init_vfs_handling(Path(metadata_pdu.source_file_name).name)
-        else:
-            self.states.step = TransactionStep.TRANSFER_COMPLETION
-        msgs_to_user_list: None | list[MessageToUserTlv] = None
+        msgs_to_user_list: list[MessageToUserTlv] | None = None
         options = metadata_pdu.options_as_tlv()
         if options is not None:
             msgs_to_user_list = []
